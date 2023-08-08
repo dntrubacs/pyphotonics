@@ -121,7 +121,7 @@ if __name__ == '__main__':
                          query_mode=True)
 
     # enable CH1 to send output signals
-    debug_bk_com.set_channel_mode(mode='ON')
+    debug_bk_com.set_channel_mode(mode='OFF')
     
     # set the waveform to be square
     debug_bk_com.send_waveform(waveform_type='SINE', amplitude=2.5)
