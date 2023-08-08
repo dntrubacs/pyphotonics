@@ -31,6 +31,8 @@ def find_available_instruments() -> None:
             print('Resource: ', resource, ' is not an instrument or the local '
                   'machine is not able to connect to it.')
             print('ERROR RETURNED:', ex)
+            # leave a blank line after printing the error
+            print()
 
 
 if __name__ == '__main__':
