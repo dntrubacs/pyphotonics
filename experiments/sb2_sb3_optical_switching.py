@@ -29,12 +29,12 @@ class Sb2Sb3ExperimentControl:
             the ThorLabs Kinesis KD101 used to control the x movement.
         y_kdc101_address: String representing the address (serial_number) of
             the ThorLabs Kinesis KD101 used to control the y movement.
-        bk_4063b: BKCom client object used to communicate with the physical
+        bnc: BKCom client object used to communicate with the physical
             instrument BK Precision 4063B BNC.
-        x_kdc101: KD101Com client object used to communicated with the
+        x_motor: KD101Com client object used to communicated with the
             physical brushed motor ThorLabs Kinesis KD101 used to control the
             x movement.
-        y_kdc101: KD101Com client object used to communicated with the
+        y_motor: KD101Com client object used to communicated with the
             physical brushed motor ThorLabs Kinesis KD101 used to control the
             y movement.
     """
@@ -55,6 +55,39 @@ class Sb2Sb3ExperimentControl:
             pass
 
         # else set up the connection manually
-        self.bk_4063b = BKCom(self.bk_4063b_address)
-        self.x_kdc101 = KDC101Com(self.x_kdc101_address)
-        self.y_kdc101 = KDC101Com(self.y_kdc101_address)
+        self.bnc = BKCom(self.bk_4063b_address)
+        self.x_motor = KDC101Com(self.x_kdc101_address)
+        self.y_motor = KDC101Com(self.y_kdc101_address)
+
+    def _send_digital_modulation_pump(self, **kwargs) -> None:
+        """ Sends digital modulation to the pump.
+
+        The digital modulation should always be connected to C1 of the BNC.
+
+        Args:
+            **kwargs: Other arguments given to coms.BKCom.send_waveform
+            and coms.BKCom.set_digital_modulation methods.
+        """
+        # send a normal sinusoidal wave
+        self.bnc.send_waveform(channel='C1', waveform_type='PULSE', **kwargs)
+
+        # digitally modulate the signal
+        self.bnc.set_digital_modulation(channel='C1', modulation_type='PWM',
+                                        **kwargs)
+
+    def _send_analog_modulation_pump(self, **kwargs) -> None:
+        """ Sends analog modulation to the pump.
+
+        The digital modulation should always be connected to C2 of the BNC.
+
+        Args:
+            **kwargs: Other arguments given to coms.BKCom.send_waveform
+            and coms.BKCom.set_digital_modulation methods.
+        """
+        # send a normal sinusoidal wave
+        self.bnc.send_waveform(channel='C1', waveform_type='SINE', **kwargs)
+
+        # digitally modulate the signal
+        self.bnc.set_digital_modulation(channel='C1', modulation_type='AM',
+                                        **kwargs)
+    
