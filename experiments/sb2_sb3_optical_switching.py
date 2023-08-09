@@ -9,7 +9,7 @@ https://onlinelibrary.wiley.com/doi/full/10.1002/adfm.202002447.
 """
 
 
-from coms.thorlabs_kdc_101 import KD101Com
+from coms.thorlabs_kdc_101 import KDC101Com
 from coms.bk_precision_4063_b import BKCom
 
 
@@ -56,5 +56,5 @@ class Sb2Sb3ExperimentControl:
 
         # else set up the connection manually
         self.bk_4063b = BKCom(self.bk_4063b_address)
-        self.x_kdc101 = KD101Com(self.x_kdc101_address)
-        self.y_kdc101 = KD101Com(self.y_kdc101_address)
+        self.x_kdc101 = KDC101Com(self.x_kdc101_address)
+        self.y_kdc101 = KDC101Com(self.y_kdc101_address)

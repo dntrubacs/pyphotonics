@@ -21,7 +21,7 @@ Last updated by Daniel-Iosif Trubacs on 8 August 2023.
 from pylablib.devices import Thorlabs
 
 
-class KD101Com:
+class KDC101Com:
     """ High level client class to provide communications between the local
     machine and the KD101 Brushed Motor Controller. Please see
     https://www.thorlabs.com/newgrouppage9.cfm?objectgroup_id=2419 for more
@@ -65,7 +65,7 @@ class KD101Com:
 
 if __name__ == '__main__':
     # used only for debugging and testing
-    debug_kd_101 = KD101Com(serial_number='27005180')
+    debug_kd_101 = KDC101Com(serial_number='27005180')
 
     # move the motor
     debug_kd_101.move_to_position(position=2)
