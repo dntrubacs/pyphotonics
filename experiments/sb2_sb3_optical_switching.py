@@ -55,9 +55,10 @@ class Sb2Sb3ExperimentControl:
             pass
 
         # else set up the connection manually
-        self.bnc = BKCom(self.bk_4063b_address)
-        self.x_motor = KDC101Com(self.x_kdc101_address)
-        self.y_motor = KDC101Com(self.y_kdc101_address)
+        else:
+            self.bnc = BKCom(self.bk_4063b_address)
+            self.x_motor = KDC101Com(self.x_kdc101_address)
+            self.y_motor = KDC101Com(self.y_kdc101_address)
 
     def _send_digital_modulation_pump(self, **kwargs) -> None:
         """ Sends digital modulation to the pump.
@@ -68,6 +69,9 @@ class Sb2Sb3ExperimentControl:
             **kwargs: Other arguments given to coms.BKCom.send_waveform
             and coms.BKCom.set_digital_modulation methods.
         """
+        # open the C1 port
+        self.bnc.set_channel_mode(channel='C1', mode='ON', **kwargs)
+
         # send a normal sinusoidal wave
         self.bnc.send_waveform(channel='C1', waveform_type='PULSE', **kwargs)
 
@@ -84,10 +88,36 @@ class Sb2Sb3ExperimentControl:
             **kwargs: Other arguments given to coms.BKCom.send_waveform
             and coms.BKCom.set_digital_modulation methods.
         """
+        # open the C2 port
+        self.bnc.set_channel_mode(channel='C2', mode='ON', **kwargs)
+
         # send a normal sinusoidal wave
-        self.bnc.send_waveform(channel='C1', waveform_type='SINE', **kwargs)
+        self.bnc.send_waveform(channel='C2', waveform_type='SINE', **kwargs)
 
         # digitally modulate the signal
-        self.bnc.set_digital_modulation(channel='C1', modulation_type='AM',
+        self.bnc.set_digital_modulation(channel='C2', modulation_type='AM',
                                         **kwargs)
-    
+
+    def calibrate(self) -> None:
+        """ Calibrate the experiment.
+
+        Always Check that everything is set in place before running the
+        experiment. Please read the printing messages and check that all
+        pieces of equipment have received the right commands.
+        """
+        # move both motors to position 0 (corresponding to [0,0] in xy
+        # coordinates
+        self.x_motor.move_to_position(position=0)
+        self.y_motor.move_to_position(position=0)
+
+        # try to send analog modulation to the pump
+        self._send_analog_modulation_pump(query_mode=True)
+
+        # try to send digital modulation to the pump
+        self._send_digital_modulation_pump(query_mode=True)
+
+
+if __name__ == '__main__':
+    # used only for testing and debugging
+    debug_experiment_control = Sb2Sb3ExperimentControl()
+    print(debug_experiment_control)

@@ -31,17 +31,14 @@ class BKCom:
         instrument: pyvisa resource object to write commands and read data
             from the BK 4063B BNC (see pyvisa.resources.resource for more
             information).
-        query_mode: Boolean representing whether you want to query the
-            instrument after each command sent and print the response
-            (used only for debugging).
     """
-    def __init__(self, resource: str, query_mode: bool = False) -> None:
+    def __init__(self, resource: str) -> None:
         self.resource = resource
         self.instrument = pyvisa.ResourceManager().open_resource(self.resource)
-        self.query_mode = query_mode
 
     def set_channel_mode(self, channel: str = 'C1', mode: str = 'ON',
-                         load: int = 75, polarisation: str = 'NOR') -> None:
+                         load: int = 75, polarisation: str = 'NOR',
+                         query_mode: bool = False) -> None:
         """ Sets the mode of a specific channel.
 
         Args:
@@ -51,19 +48,23 @@ class BKCom:
             load: Load (measured in Ohms).
             polarisation: Polarisation of the output signal (normal 'NOR' or
                 inverted 'INVT').
+            query_mode: Boolean representing whether you want to query the
+                instrument after the command sent and print the response
+                (used only for debugging).
         """
         # send the serial command to enable CH1
         self.instrument.write(f'{channel}:OUTP {mode},LOAD,{load},PLRT,'
                               f'{polarisation}')
 
         # query the instrument if necessary
-        if self.query_mode:
+        if query_mode:
             print(self.instrument.query('C1:OUTP?'))
 
     def send_waveform(self, channel: str = 'C1', waveform_type: str = 'SINE',
                       waveform_frequency: float = 1000,
                       waveform_offset: float = 0,
-                      waveform_amplitude: float = 5) -> None:
+                      waveform_amplitude: float = 5,
+                      query_mode: bool = False) -> None:
         """ Sends a specific waveform to one channel.
 
         Args:
@@ -72,6 +73,9 @@ class BKCom:
             waveform_frequency: The frequency of the waveform (in Hz).
             waveform_offset: The offset of the waveform send (in V).
             waveform_amplitude: The amplitude of the waveform (in V).
+            query_mode: Boolean representing whether you want to query the
+                instrument after the command sent and print the response
+                (used only for debugging).
         """
         # send the serial command to send a specific waveform
         self.instrument.write(
@@ -80,7 +84,7 @@ class BKCom:
                 f'OFST,{waveform_offset}V')
 
         # query the instrument if necessary
-        if self.query_mode:
+        if query_mode:
             print(self.instrument.query('C1:BaSic_WaVe?'))
 
     def set_digital_modulation(self, channel: str = 'C1',
@@ -90,8 +94,8 @@ class BKCom:
                                modulation_source: str = 'INT',
                                modulation_frequency: float = 100,
                                modulation_depth: float = 100,
-                               modulation_deviation: float = 180
-                               ) -> None:
+                               modulation_deviation: float = 180,
+                               query_mode: bool = False) -> None:
         """ Sets the digital modulation for a specific channel.
 
         Args:
@@ -109,6 +113,9 @@ class BKCom:
                 (0-120%).
             modulation_deviation: Deviation of the modulating signal
                 (0-360 degrees).
+            query_mode: Boolean representing whether you want to query the
+                instrument after the command sent and print the response
+                (used only for debugging).
         """
         # set the modulation mode
         self.instrument.write(f'{channel}:MDWV STATE,{modulation_mode}')
@@ -121,7 +128,7 @@ class BKCom:
                               f'{modulation_deviation}')
 
         # query the instrument if necessary
-        if self.query_mode:
+        if query_mode:
             print(self.instrument.query('C1:MDWV?'))
 
 
