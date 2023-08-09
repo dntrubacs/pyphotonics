@@ -58,7 +58,7 @@ class BKCom:
 
         # query the instrument if necessary
         if query_mode:
-            print(self.instrument.query('C1:OUTP?'))
+            print(self.instrument.query(f'{channel}:OUTP?'))
 
     def send_waveform(self, channel: str = 'C1', waveform_type: str = 'SINE',
                       waveform_frequency: float = 1000,
@@ -85,7 +85,7 @@ class BKCom:
 
         # query the instrument if necessary
         if query_mode:
-            print(self.instrument.query('C1:BaSic_WaVe?'))
+            print(self.instrument.query(f'{channel}:BaSic_WaVe?'))
 
     def set_digital_modulation(self, channel: str = 'C1',
                                modulation_mode: str = 'ON',
@@ -129,13 +129,12 @@ class BKCom:
 
         # query the instrument if necessary
         if query_mode:
-            print(self.instrument.query('C1:MDWV?'))
+            print(self.instrument.query(f'{channel}:MDWV?'))
 
 
 if __name__ == '__main__':
     # used only for debugging and testing
-    debug_bk_com = BKCom(resource='USB0::0xF4EC::0xEE38::574B21101::INSTR',
-                         query_mode=True)
+    debug_bk_com = BKCom(resource='USB0::0xF4EC::0xEE38::574B21101::INSTR')
 
     # enable CH1 to send output signals
     debug_bk_com.set_channel_mode(mode='OFF')

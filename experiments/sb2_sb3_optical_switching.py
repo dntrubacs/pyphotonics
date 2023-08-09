@@ -7,7 +7,7 @@ of the experiment can be found at:
 https://iopscience.iop.org/article/10.1088/2040-8986/ac5ece/meta and
 https://onlinelibrary.wiley.com/doi/full/10.1002/adfm.202002447.
 """
-
+import time
 
 from coms.thorlabs_kdc_101 import KDC101Com
 from coms.bk_precision_4063_b import BKCom
@@ -110,6 +110,12 @@ class Sb2Sb3ExperimentControl:
         self.x_motor.move_to_position(position=0)
         self.y_motor.move_to_position(position=0)
 
+        # check that both motors are at position 0
+        print('The x-motor is at position: ',
+              self.x_motor.get_current_position())
+        print('The y-motor is at position: ',
+              self.x_motor.get_current_position())
+
         # try to send analog modulation to the pump
         self._send_analog_modulation_pump(query_mode=True)
 
@@ -119,5 +125,9 @@ class Sb2Sb3ExperimentControl:
 
 if __name__ == '__main__':
     # used only for testing and debugging
-    debug_experiment_control = Sb2Sb3ExperimentControl()
-    print(debug_experiment_control)
+    debug_experiment_control = Sb2Sb3ExperimentControl(
+        bk_4063b_address='USB0::0xF4EC::0xEE38::574B21101::INSTR',
+        x_kdc101_address='27005180',
+        y_kdc101_address='27005183'
+        )
+    debug_experiment_control.calibrate()
