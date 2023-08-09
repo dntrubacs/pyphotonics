@@ -32,6 +32,7 @@ class BKCom:
             from the BK 4063B BNC (see pyvisa.resources.resource for more
             information).
     """
+
     def __init__(self, resource: str) -> None:
         self.resource = resource
         self.instrument = pyvisa.ResourceManager().open_resource(self.resource)
@@ -79,9 +80,9 @@ class BKCom:
         """
         # send the serial command to send a specific waveform
         self.instrument.write(
-                f'{channel}:BaSic_WaVe WVTP,{waveform_type},FRQ,'
-                f'{waveform_frequency}HZ,AMP,{waveform_amplitude}V,'
-                f'OFST,{waveform_offset}V')
+            f'{channel}:BaSic_WaVe WVTP,{waveform_type},FRQ,'
+            f'{waveform_frequency}HZ,AMP,{waveform_amplitude}V,'
+            f'OFST,{waveform_offset}V')
 
         # query the instrument if necessary
         if query_mode:
@@ -138,7 +139,7 @@ if __name__ == '__main__':
 
     # enable CH1 to send output signals
     debug_bk_com.set_channel_mode(mode='OFF')
-    
+
     # set the waveform to be square
     debug_bk_com.send_waveform(waveform_type='SINE', waveform_amplitude=2.5)
 

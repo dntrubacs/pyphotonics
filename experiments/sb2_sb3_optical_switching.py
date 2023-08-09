@@ -6,6 +6,11 @@ was designed and build by Daniel Lawson. More information about the specifics
 of the experiment can be found at:
 https://iopscience.iop.org/article/10.1088/2040-8986/ac5ece/meta and
 https://onlinelibrary.wiley.com/doi/full/10.1002/adfm.202002447.
+
+See the end of the file for a code example.
+
+
+Last updated by Daniel-Iosif Trubacs on 9 August 2023.
 """
 import time
 from matplotlib import pyplot as plt
@@ -44,6 +49,7 @@ class Sb2Sb3ExperimentControl:
             physical brushed motor ThorLabs Kinesis KD101 used to control the
             y movement.
     """
+
     def __init__(self, bk_4063b_address: str = None,
                  x_kdc101_address: str = None,
                  y_kdc101_address: str = None) -> None:
@@ -194,14 +200,18 @@ class Sb2Sb3ExperimentControl:
             if visual_feedback:
                 # set up the figure
                 plt.figure(figsize=(12, 8))
-                plt.title('Position of the pixels being written')
-                plt.xlim([0, n_pixels*pixel_length])
-                plt.ylim([0, n_pixels*pixel_length])
+                plt.title(f'Position of the motors: '
+                          f' x={round(motors_position[0], 3)},'
+                          f' y={round(motors_position[0], 3)}')
+                plt.xlim([0, n_pixels * pixel_length])
+                plt.ylim([0, n_pixels * pixel_length])
 
                 # show the pixel grid
                 for k in range(n_pixels):
-                    plt.vlines(x=k, ymin=0, ymax=n_pixels, color='black')
-                    plt.hlines(y=k, xmin=0, xmax=n_pixels, color='black')
+                    plt.vlines(x=k*pixel_length, ymin=0,
+                               ymax=n_pixels*pixel_length, color='black')
+                    plt.hlines(y=k*pixel_length, xmin=0,
+                               xmax=n_pixels*pixel_length, color='black')
 
                 # show the pixel centers and their order
                 written_pixel_number = 0
@@ -209,7 +219,7 @@ class Sb2Sb3ExperimentControl:
                     plt.plot(past_point[0], past_point[1], marker='o',
                              markersize=10, color='blue')
                     plt.text(past_point[0], past_point[1],
-                             str(written_pixel_number))
+                             str(written_pixel_number), fontsize=20)
                     written_pixel_number += 1
                 plt.show()
 
@@ -225,4 +235,6 @@ if __name__ == '__main__':
     debug_experiment_control.calibrate()
 
     # run the experiment
-    debug_experiment_control.run_experiment(visual_feedback=True)
+    debug_experiment_control.run_experiment(n_pixels=3,
+                                            pixel_length=3,
+                                            visual_feedback=True)
