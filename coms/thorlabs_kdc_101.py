@@ -17,11 +17,12 @@ See the end of the file for a code example.
 
 Last updated by Daniel-Iosif Trubacs on 8 August 2023.
 """  # noqa
+import time
 
 from pylablib.devices import Thorlabs
 
 
-class KD101Com:
+class KDC101Com:
     """ High level client class to provide communications between the local
     machine and the KD101 Brushed Motor Controller. Please see
     https://www.thorlabs.com/newgrouppage9.cfm?objectgroup_id=2419 for more
@@ -49,7 +50,10 @@ class KD101Com:
         # get the distance units from the internal setup of the motor
         self.distance_unit = (
             self.motor.get_gen_move_parameters().__getitem__(0))
-        print(self.distance_unit)
+
+    def get_current_position(self) -> float:
+        """ Gets the current position (measured in mm) of the motors."""
+        return self.motor.get_position()/(self.distance_unit*20)
 
     def move_to_position(self, position: float) -> None:
         """ Moves the motor to a certain position.
@@ -62,10 +66,17 @@ class KD101Com:
         # move the motor to the specific position
         self.motor.move_to(position*self.distance_unit*20)
 
+        # wait until the motor stopped moving
+        while self.motor.is_moving():
+            time.sleep(0.1)
+
 
 if __name__ == '__main__':
     # used only for debugging and testing
-    debug_kd_101 = KD101Com(serial_number='27005180')
+    debug_kdc_101 = KDC101Com(serial_number='27005180')
 
     # move the motor
-    debug_kd_101.move_to_position(position=2)
+    debug_kdc_101.move_to_position(position=0)
+
+    # get the current position
+    print(debug_kdc_101.get_current_position())
