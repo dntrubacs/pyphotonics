@@ -76,29 +76,34 @@ class Sb2Sb3ExperimentControl:
         """ Sends digital modulation to the pump.
 
         The digital modulation should always be connected to C1 of the BNC.
+        The maximum amplitude should always be less than 5V.
 
         Args:
-            **kwargs: Other arguments given to coms.BKCom.send_waveform
-            and coms.BKCom.set_digital_modulation methods.
+            **kwargs: Arguments given to coms.BKCom client methods.
         """
         # open the C1 port
         self.bnc.set_channel_mode(channel='C1', mode='ON', **kwargs)
 
         # send a normal sinusoidal wave
-        self.bnc.send_waveform(channel='C1', waveform_type='PULSE', **kwargs)
+        self.bnc.send_waveform(channel='C1', waveform_type='PULSE',
+                               waveform_amplitude=1,
+                               waveform_max_amplitude=2.5,
+                               waveform_offset=0.1,
+                               **kwargs)
 
         # digitally modulate the signal
-        self.bnc.set_digital_modulation(channel='C1', modulation_type='PWM',
+        self.bnc.set_digital_modulation(channel='C1', modulation_type='ASK',
+                                        modulation_wave_shape='SQUARE',
                                         **kwargs)
 
     def _send_analog_modulation_pump(self, **kwargs) -> None:
         """ Sends analog modulation to the pump.
 
-        The digital modulation should always be connected to C2 of the BNC.
+        The analog modulation should always be connected to C2 of the BNC. The
+        maximum amplitude should always be less than 5V.
 
         Args:
-            **kwargs: Other arguments given to coms.BKCom.send_waveform
-            and coms.BKCom.set_digital_modulation methods.
+            **kwargs: Arguments given to coms.BKCom client methods.
         """
         # open the C2 port
         self.bnc.set_channel_mode(channel='C2', mode='ON', **kwargs)
@@ -110,32 +115,36 @@ class Sb2Sb3ExperimentControl:
         self.bnc.set_digital_modulation(channel='C2', modulation_type='AM',
                                         **kwargs)
 
-    def _write_on_pixel(self, writing_time: float = 5) -> None:
+    def _write_on_pixel(self, writing_time: float = 5, **kwargs) -> None:
         """ Writes on the pixel the laser is currently at.
 
         Args:
             writing_time: The time the laser will write on the pixel (the
                 time the laser modulation is on, measured in seconds)
+            **kwargs: Other arguments given to coms.BKCom client methods.
         """
         # send analog modulation
-        self._send_analog_modulation_pump(query_mode=True)
+        self._send_analog_modulation_pump(**kwargs)
 
         # send digital modulation
-        self._send_digital_modulation_pump(query_mode=True)
+        self._send_digital_modulation_pump(**kwargs)
 
         # wait for the laser to write on the pixel
         time.sleep(writing_time)
 
         # stop the laser modulation
-        self.bnc.set_channel_mode(channel='C1', mode='OFF', query_mode=True)
-        self.bnc.set_channel_mode(channel='C2', mode='OFF', query_mode=True)
+        self.bnc.set_channel_mode(channel='C1', mode='OFF', **kwargs)
+        self.bnc.set_channel_mode(channel='C2', mode='OFF', **kwargs)
 
-    def calibrate(self) -> None:
+    def calibrate(self, **kwargs) -> None:
         """ Calibrate the experiment.
 
         Always Check that everything is set in place before running the
         experiment. Please read the printing messages and check that all
         pieces of equipment have received the right commands.
+
+        Args:
+            **kwargs: Arguments given to coms.BKCom client methods.
         """
         # move both motors to position 0 (corresponding to [0,0] in xy
         # coordinates
@@ -149,13 +158,13 @@ class Sb2Sb3ExperimentControl:
               self.x_motor.get_current_position())
 
         # try to send analog modulation to the pump
-        self._send_analog_modulation_pump(query_mode=True)
+        self._send_analog_modulation_pump(**kwargs)
 
         # try to send digital modulation to the pump
-        self._send_digital_modulation_pump(query_mode=True)
+        self._send_digital_modulation_pump(**kwargs)
 
     def run_experiment(self, n_pixels: int = 3, pixel_length: float = 1.0,
-                       visual_feedback: bool = False) -> None:
+                       visual_feedback: bool = False, **kwargs) -> None:
         """ Runs the main experiment.
 
         Args:
@@ -165,6 +174,7 @@ class Sb2Sb3ExperimentControl:
                 pixel).
             visual_feedback: Whether a plot showing the updates of the pixel
                 map to be shown.
+            **kwargs: Other arguments given to coms.BKCom client methods.
         """
         # get the correct pattern for the motors to follow
         pattern = get_square_pattern(n_pixels=n_pixels,
@@ -193,7 +203,7 @@ class Sb2Sb3ExperimentControl:
 
             # write on the current pixel
             print('Start writing on the current pixel')
-            self._write_on_pixel()
+            self._write_on_pixel(**kwargs)
             print('The pixel has been written and the modulation has '
                   'been stopped.')
 
