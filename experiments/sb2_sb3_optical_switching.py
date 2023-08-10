@@ -17,6 +17,7 @@ from matplotlib import pyplot as plt
 
 from coms.thorlabs_kdc_101 import KDC101Com
 from coms.bk_precision_4063_b import BKCom
+from coms.find_resources import find_available_kdc_101
 from utils import get_square_pattern
 
 
@@ -32,6 +33,11 @@ class Sb2Sb3ExperimentControl:
     (lab equipment) is done via the BKCom and KD101Com client classes. Please
     see coms.bk_precision_4063_b and coms.thorlabs_kdc_101 for more
     information.
+
+    If no address is given for the BK 4063B or the KDC101 motors (either one
+    of them), the local machine will automatically search for the ones
+    available. Keep in Mind that this is not recommended as multiple devices
+    might be connected in the same time.
 
     Attributes:
         bk_4063b_address: String representing the address (visa resource) of
@@ -55,22 +61,23 @@ class Sb2Sb3ExperimentControl:
                  y_kdc101_address: str = None) -> None:
 
         self.bk_4063b_address = bk_4063b_address
-        self.x_kdc101_address = x_kdc101_address
-        self.y_kdc101_address = y_kdc101_address
 
-        # automatically search for the available instruments
-        if bk_4063b_address is None:
-            pass
-        if x_kdc101_address is None:
-            pass
-        if y_kdc101_address is None:
-            pass
+        # as there are 2 motors, automatically searching for the first one
+        # might make the code confuse the 2 motors. If one of them is None
+        # manually for 2 different available motors.
+        if x_kdc101_address is None or y_kdc101_address is None:
+            self.x_kdc101_address = find_available_kdc_101()[0]
+            self.y_kdc101_address = find_available_kdc_101()[1]
 
-        # else set up the connection manually
+        # else use the user given addresses
         else:
-            self.bnc = BKCom(self.bk_4063b_address)
-            self.x_motor = KDC101Com(self.x_kdc101_address)
-            self.y_motor = KDC101Com(self.y_kdc101_address)
+            self.x_kdc101_address = x_kdc101_address
+            self.y_kdc101_address = y_kdc101_address
+
+        # set up the client object for connection
+        self.bnc = BKCom(self.bk_4063b_address)
+        self.x_motor = KDC101Com(self.x_kdc101_address)
+        self.y_motor = KDC101Com(self.y_kdc101_address)
 
     def _send_digital_modulation_pump(self, **kwargs) -> None:
         """ Sends digital modulation to the pump.
@@ -185,8 +192,8 @@ class Sb2Sb3ExperimentControl:
 
         # go through each point in the pattern and write a pixel
         for point in pattern:
-            print('Move the motors to position: x=', point[0],
-                  ' y=', point[0])
+            print(f'Move the motors to position: x={point[0]}'
+                  f' y={point[0]}')
 
             # move the motors to each point in the pattern
             self.x_motor.move_to_position(position=point[0])
@@ -195,8 +202,8 @@ class Sb2Sb3ExperimentControl:
             # the real position of the motors (as read directly from the motor)
             motors_position = [self.x_motor.get_current_position(),
                                self.y_motor.get_current_position()]
-            print('The motors are now at position: x=', motors_position[0],
-                  ' y=', motors_position[0])
+            print(f'The motors are now at position: x={motors_position[0]}'
+                  f' y={motors_position[0]}')
 
             # append the motors position
             past_points.append(motors_position)
@@ -236,10 +243,7 @@ class Sb2Sb3ExperimentControl:
 
 if __name__ == '__main__':
     # used only for testing and debugging
-    debug_experiment_control = Sb2Sb3ExperimentControl(
-        bk_4063b_address='USB0::0xF4EC::0xEE38::574B21101::INSTR',
-        x_kdc101_address='27005180',
-        y_kdc101_address='27005183')
+    debug_experiment_control = Sb2Sb3ExperimentControl()
 
     # calibrate the experiment
     debug_experiment_control.calibrate()
@@ -247,4 +251,5 @@ if __name__ == '__main__':
     # run the experiment
     debug_experiment_control.run_experiment(n_pixels=3,
                                             pixel_length=3,
-                                            visual_feedback=True)
+                                            visual_feedback=True,
+                                            query_mode=True)

@@ -15,6 +15,7 @@ Last updated by Daniel-Iosif Trubacs on 9 August 2023.
 """
 
 import pyvisa
+from coms.find_resources import find_available_bk_precision_4063_b
 
 
 class BKCom:
@@ -31,14 +32,22 @@ class BKCom:
 
     Attributes:
         resource: String representing the resource (as found by pyvisa)
-            corresponding to the BK 4063 BNC.
+            corresponding to the BK 4063 BNC. If None is given, the first
+            available found by the
+            coms.find_resources.find_available_bk_precision_4063_b function
+            will be used.
         instrument: pyvisa resource object to write commands and read data
             from the BK 4063B BNC (see pyvisa.resources.resource for more
             information).
     """
 
-    def __init__(self, resource: str) -> None:
-        self.resource = resource
+    def __init__(self, resource: str = None) -> None:
+        # search for the available BK 4063B available if None is given
+        if resource is None:
+            self.resource = find_available_bk_precision_4063_b()[0]
+        # else, use the resource provided
+        else:
+            self.resource = resource
         self.instrument = pyvisa.ResourceManager().open_resource(self.resource)
 
     def set_channel_mode(self, channel: str = 'C1', mode: str = 'ON',
@@ -146,7 +155,8 @@ class BKCom:
 
 if __name__ == '__main__':
     # used only for debugging and testing
-    debug_bk_com = BKCom(resource='USB0::0xF4EC::0xEE38::574B21101::INSTR')
+    debug_bk_com = BKCom()
+    print(debug_bk_com.resource)
 
     # set CH2 to analog (constant signal)
     debug_bk_com.set_channel_mode(channel='C2', mode='OFF')
@@ -160,7 +170,7 @@ if __name__ == '__main__':
 
     # enable CH1 to send output signals
     debug_bk_com.set_channel_mode(channel='C1',
-                                  mode='OFF', load=75, query_mode=True)
+                                  mode='ON', load=75, query_mode=True)
 
     # set the waveform to be square
     debug_bk_com.send_waveform(channel='C1',
