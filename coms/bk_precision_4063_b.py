@@ -2,7 +2,11 @@
 Created by Daniel-Iosif Trubacs for the UoS QLM group on 4 August 2023. The
 purpose of this module is to create a high level Client class for the
 BK Precision 4063B that can handle communication between the external
-hardware and the local machine.
+hardware and the local machine. Please see
+https://www.bkprecision.com/products/signal-generators/4063B for more
+information about the specifics of this BNC. For a full documentation about
+all the serial commands that can be used to control the BNC please check the
+BK_4060B_Series Programming Manual (freely available online).
 
 See the end of the file for a code example.
 
@@ -15,15 +19,15 @@ import pyvisa
 
 class BKCom:
     """ High level client class to provide communications between the local
-    machine and the BK Precision 4063B equipment. Please see
-    https://www.bkprecision.com/products/signal-generators/4063B for more
-    information about the specifics of this BNC.
+    machine and the BK Precision 4063B equipment. This Client class can ONLY
+    handle communications through USB via pyvisa. For more information about
+    this please check pyvisa documentation and coms.find_resources.
 
-    This Client class can ONLY handle communications through USB via pyvisa.
-    For more information about this please check pyvisa documentation and
-    coms.find_resources. For a full documentation about all the serial
-    commands that can be used to control the BNC please check the
-    BK_4060B_Series Programming Manual (freely available online).
+    This class has 3 client methods used to communicate between the local
+    machine and the BNC: set_channel_mode, send_waveform and
+    set_digital_modulation. To send any signal via channel the
+    set_channel_mode method should always be used first to enable the channel
+    to send output signals.
 
     Attributes:
         resource: String representing the resource (as found by pyvisa)
@@ -172,5 +176,3 @@ if __name__ == '__main__':
                                         modulation_wave_shape='SQUARE',
                                         modulation_amplitude=1.1,
                                         query_mode=True)
-    
-
