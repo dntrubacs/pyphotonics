@@ -2,39 +2,52 @@
 Created by Daniel-Iosif Trubacs for the UoS QLM group on 4 August 2023. The
 purpose of this module is to create a high level Client class for the
 BK Precision 4063B that can handle communication between the external
-hardware and the local machine.
+hardware and the local machine. Please see
+https://www.bkprecision.com/products/signal-generators/4063B for more
+information about the specifics of this BNC. For a full documentation about
+all the serial commands that can be used to control the BNC please check the
+BK_4060B_Series Programming Manual (freely available online).
 
 See the end of the file for a code example.
 
 
-Last updated by Daniel-Iosif Trubacs on 9 August 2023.
+Last update: 11 August 2023.
 """
 
 import pyvisa
+from coms.find_resources import find_available_bk_precision_4063_b
 
 
 class BKCom:
     """ High level client class to provide communications between the local
-    machine and the BK Precision 4063B equipment. Please see
-    https://www.bkprecision.com/products/signal-generators/4063B for more
-    information about the specifics of this BNC.
+    machine and the BK Precision 4063B equipment. This Client class can ONLY
+    handle communications through USB via pyvisa. For more information about
+    this please check pyvisa documentation and coms.find_resources.
 
-    This Client class can ONLY handle communications through USB via pyvisa.
-    For more information about this please check pyvisa documentation and
-    coms.find_resources. For a full documentation about all the serial
-    commands that can be used to control the BNC please check the
-    BK_4060B_Series Programming Manual (freely available online).
+    This class has 3 client methods used to communicate between the local
+    machine and the BNC: set_channel_mode, send_waveform and
+    set_digital_modulation. To send any signal via channel the
+    set_channel_mode method should always be used first to enable the channel
+    to send output signals.
 
     Attributes:
         resource: String representing the resource (as found by pyvisa)
-            corresponding to the BK 4063 BNC.
+            corresponding to the BK 4063 BNC. If None is given, the first
+            available found by the
+            coms.find_resources.find_available_bk_precision_4063_b function
+            will be used.
         instrument: pyvisa resource object to write commands and read data
             from the BK 4063B BNC (see pyvisa.resources.resource for more
             information).
     """
 
-    def __init__(self, resource: str) -> None:
-        self.resource = resource
+    def __init__(self, resource: str = None) -> None:
+        # search for the available BK 4063B available if None is given
+        if resource is None:
+            self.resource = find_available_bk_precision_4063_b()[0]
+        # else, use the resource provided
+        else:
+            self.resource = resource
         self.instrument = pyvisa.ResourceManager().open_resource(self.resource)
 
     def set_channel_mode(self, channel: str = 'C1', mode: str = 'ON',
@@ -65,6 +78,7 @@ class BKCom:
                       waveform_frequency: float = 1000,
                       waveform_offset: float = 0,
                       waveform_amplitude: float = 5,
+                      waveform_max_amplitude: float = 5,
                       query_mode: bool = False) -> None:
         """ Sends a specific waveform to one channel.
 
@@ -74,6 +88,8 @@ class BKCom:
             waveform_frequency: The frequency of the waveform (in Hz).
             waveform_offset: The offset of the waveform send (in V).
             waveform_amplitude: The amplitude of the waveform (in V).
+            waveform_max_amplitude: The maximum amplitude the waveform can
+                have (in V).
             query_mode: Boolean representing whether you want to query the
                 instrument after the command sent and print the response
                 (used only for debugging).
@@ -82,7 +98,8 @@ class BKCom:
         self.instrument.write(
             f'{channel}:BaSic_WaVe WVTP,{waveform_type},FRQ,'
             f'{waveform_frequency}HZ,AMP,{waveform_amplitude}V,'
-            f'OFST,{waveform_offset}V')
+            f'OFST,{waveform_offset}V,MAX_OUTPUT_AMP,'
+            f'{waveform_max_amplitude}V')
 
         # query the instrument if necessary
         if query_mode:
@@ -96,6 +113,7 @@ class BKCom:
                                modulation_frequency: float = 100,
                                modulation_depth: float = 100,
                                modulation_deviation: float = 180,
+                               modulation_amplitude: float = 1,
                                query_mode: bool = False) -> None:
         """ Sets the digital modulation for a specific channel.
 
@@ -114,6 +132,7 @@ class BKCom:
                 (0-120%).
             modulation_deviation: Deviation of the modulating signal
                 (0-360 degrees).
+            modulation_amplitude: Amplitude of the modulation (in V).
             query_mode: Boolean representing whether you want to query the
                 instrument after the command sent and print the response
                 (used only for debugging).
@@ -125,6 +144,7 @@ class BKCom:
         self.instrument.write(f'{channel}:MDWV {modulation_type},MDSP,'
                               f'{modulation_wave_shape},SRC,'
                               f'{modulation_source},FRQ,{modulation_frequency}'
+                              f',AMP,{modulation_amplitude}V'
                               f'HZ,DEPTH,{modulation_depth},DEVI,'
                               f'{modulation_deviation}')
 
@@ -135,14 +155,34 @@ class BKCom:
 
 if __name__ == '__main__':
     # used only for debugging and testing
-    debug_bk_com = BKCom(resource='USB0::0xF4EC::0xEE38::574B21101::INSTR')
+    debug_bk_com = BKCom()
+    print(debug_bk_com.resource)
+
+    # set CH2 to analog (constant signal)
+    debug_bk_com.set_channel_mode(channel='C2', mode='OFF')
+
+    # set the waveform to DC
+    debug_bk_com.send_waveform(channel='C2', waveform_type='DC',
+                               waveform_amplitude=1,
+                               waveform_offset=0.25,
+                               waveform_max_amplitude=1,
+                               query_mode=True)
 
     # enable CH1 to send output signals
-    debug_bk_com.set_channel_mode(mode='OFF')
+    debug_bk_com.set_channel_mode(channel='C1',
+                                  mode='ON', load=75, query_mode=True)
 
     # set the waveform to be square
-    debug_bk_com.send_waveform(waveform_type='SINE', waveform_amplitude=2.5)
+    debug_bk_com.send_waveform(channel='C1',
+                               waveform_type='PULSE', waveform_amplitude=1,
+                               waveform_offset=0.1,
+                               waveform_max_amplitude=1,
+                               query_mode=True)
 
     # set the modulation mode
-    debug_bk_com.set_digital_modulation(modulation_frequency=50,
-                                        modulation_wave_shape='UPRAMP')
+    debug_bk_com.set_digital_modulation(channel='C1',
+                                        modulation_mode='OFF',
+                                        modulation_frequency=100,
+                                        modulation_wave_shape='SQUARE',
+                                        modulation_amplitude=1.1,
+                                        query_mode=True)
