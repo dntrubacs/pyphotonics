@@ -11,7 +11,7 @@ BK_4060B_Series Programming Manual (freely available online).
 See the end of the file for a code example.
 
 
-Last updated by Daniel-Iosif Trubacs on 9 August 2023.
+Last update: 11 August 2023.
 """
 
 import pyvisa

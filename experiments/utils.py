@@ -2,6 +2,8 @@
 Created by Daniel-Iosif Trubacs for the UoS QLM group on 9 August 2023. The
 purpose of this module is to create certain utilities functions to help
 with the running of the experiments.
+
+Last update: 11 August 2023
 """
 
 from matplotlib import pyplot as plt

@@ -15,7 +15,7 @@ information: https://pylablib.readthedocs.io/en/latest/devices/Thorlabs_kinesis.
 See the end of the file for a code example.
 
 
-Last updated by Daniel-Iosif Trubacs on 8 August 2023.
+Last update: 11 August 2023.
 """  # noqa
 import time
 

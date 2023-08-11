@@ -10,7 +10,7 @@ https://onlinelibrary.wiley.com/doi/full/10.1002/adfm.202002447.
 See the end of the file for a code example.
 
 
-Last updated by Daniel-Iosif Trubacs on 9 August 2023.
+Last update: 11 August 2023.
 """
 import time
 from matplotlib import pyplot as plt
@@ -19,10 +19,6 @@ from coms.thorlabs_kdc_101 import KDC101Com
 from coms.bk_precision_4063_b import BKCom
 from coms.find_resources import find_available_kdc_101
 from utils import get_square_pattern
-
-
-def nice(a: str) -> None:
-    print(a)
 
 
 class Sb2Sb3ExperimentControl:
@@ -62,9 +58,9 @@ class Sb2Sb3ExperimentControl:
 
         self.bk_4063b_address = bk_4063b_address
 
-        # as there are 2 motors, automatically searching for the first one
-        # might make the code confuse the 2 motors. If one of them is None
-        # manually for 2 different available motors.
+        # as there are two motors, automatically searching for the first one
+        # might make the code confuse the two motors. If one of them is None
+        # manually search for two different available motors.
         if x_kdc101_address is None or y_kdc101_address is None:
             self.x_kdc101_address = find_available_kdc_101()[0]
             self.y_kdc101_address = find_available_kdc_101()[1]
