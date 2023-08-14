@@ -96,5 +96,6 @@ def find_available_kdc_101() -> list:
 
 
 if __name__ == '__main__':
+    find_available_visa_instruments(show_instruments_response=True)
     print(find_available_bk_precision_4063_b())
     print(find_available_kdc_101())

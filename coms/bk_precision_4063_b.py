@@ -51,7 +51,7 @@ class BKCom:
         self.instrument = pyvisa.ResourceManager().open_resource(self.resource)
 
     def set_channel_mode(self, channel: str = 'C1', mode: str = 'ON',
-                         load: int = 75, polarisation: str = 'NOR',
+                         load: int | str = 75, polarisation: str = 'NOR',
                          query_mode: bool = False) -> None:
         """ Sets the mode of a specific channel.
 
@@ -79,6 +79,7 @@ class BKCom:
                       waveform_offset: float = 0,
                       waveform_amplitude: float = 5,
                       waveform_max_amplitude: float = 5,
+                      waveform_width: float = 1,
                       query_mode: bool = False) -> None:
         """ Sends a specific waveform to one channel.
 
@@ -90,6 +91,7 @@ class BKCom:
             waveform_amplitude: The amplitude of the waveform (in V).
             waveform_max_amplitude: The maximum amplitude the waveform can
                 have (in V).
+            waveform_width: The width the waveform can have (in s).
             query_mode: Boolean representing whether you want to query the
                 instrument after the command sent and print the response
                 (used only for debugging).
@@ -99,7 +101,7 @@ class BKCom:
             f'{channel}:BaSic_WaVe WVTP,{waveform_type},FRQ,'
             f'{waveform_frequency}HZ,AMP,{waveform_amplitude}V,'
             f'OFST,{waveform_offset}V,MAX_OUTPUT_AMP,'
-            f'{waveform_max_amplitude}V')
+            f'{waveform_max_amplitude}V,WIDTH,{waveform_width}')
 
         # query the instrument if necessary
         if query_mode:
@@ -146,43 +148,82 @@ class BKCom:
                               f'{modulation_source},FRQ,{modulation_frequency}'
                               f',AMP,{modulation_amplitude}V'
                               f'HZ,DEPTH,{modulation_depth},DEVI,'
-                              f'{modulation_deviation}')
+                              f'{modulation_deviation}'
+                              f'WIDTH,2')
 
         # query the instrument if necessary
         if query_mode:
             print(self.instrument.query(f'{channel}:MDWV?'))
 
+    def send_burst(self, channel: str = 'C1',
+                   burst_mode: str = 'ON',
+                   burst_period: float = 1.0,
+                   burst_source: str = 'INT',
+                   burst_cycles: int = 1,
+                   burst_wave_carrier: str = 'PULSE',
+                   burst_wave_amplitude: float = 5,
+                   burst_wave_offset: float = 0,
+                   query_mode: bool = False) -> None:
+        """ Sends a burst to a specific channel.
+
+        Args:
+            channel: The channel used to send the waveform (C1 or C2).
+            burst_mode: Enable (mode 'ON') or disable (mode 'OFF') the
+                burst mode for the given channel.
+            burst_period: The period of the burst (in s).
+            burst_source: The source of the burst signal (internal
+                'INT' or external 'EXT').
+            burst_cycles: The number of cycles for the burst function.
+            burst_wave_carrier: The wave carrier for the burst signal
+                ('SINE', 'PULSE', 'SQUARE', etc.).
+            burst_wave_amplitude: The amplitude of the signal sent (in V).
+            burst_wave_offset: The offset of the signal sent (in V).
+            query_mode: Boolean representing whether you want to query the
+                instrument after the command sent and print the response
+                (used only for debugging).
+        """
+        # send the burst signal
+        self.instrument.write(f'{channel}:BTWV STATE,{burst_mode},'
+                              f'PRD,{burst_period},TRSR,{burst_source},'
+                              f'TIME,{burst_cycles},GATE_NCYC,NCYC,CARR,WVTP,'
+                              f'{burst_wave_carrier},AMP,'
+                              f'{burst_wave_amplitude}V,OFST,'
+                              f'{burst_wave_offset}V')
+
+        if query_mode:
+            print(self.instrument.query('C1:BTWV?'))
+
 
 if __name__ == '__main__':
     # used only for debugging and testing
-    debug_bk_com = BKCom()
+    debug_bk_com = BKCom('USB0::0xF4EC::0xEE38::574B21101::INSTR')
     print(debug_bk_com.resource)
 
     # set CH2 to analog (constant signal)
-    debug_bk_com.set_channel_mode(channel='C2', mode='OFF')
+    debug_bk_com.set_channel_mode(channel='C2', mode='ON', load='HZ',
+                                  query_mode=True)
 
     # set the waveform to DC
     debug_bk_com.send_waveform(channel='C2', waveform_type='DC',
-                               waveform_amplitude=1,
-                               waveform_offset=0.25,
-                               waveform_max_amplitude=1,
+                               waveform_amplitude=0,
+                               waveform_offset=5,
+                               waveform_max_amplitude=10,
                                query_mode=True)
 
     # enable CH1 to send output signals
     debug_bk_com.set_channel_mode(channel='C1',
-                                  mode='ON', load=75, query_mode=True)
+                                  mode='ON', load='HZ', query_mode=True)
 
-    # set the waveform to be square
+    # set the waveform to be pulse
     debug_bk_com.send_waveform(channel='C1',
-                               waveform_type='PULSE', waveform_amplitude=1,
-                               waveform_offset=0.1,
-                               waveform_max_amplitude=1,
+                               waveform_type='PULSE', waveform_amplitude=5,
+                               waveform_offset=0,
+                               waveform_max_amplitude=5,
+                               waveform_frequency=1,
+                               waveform_width=0.01,
                                query_mode=True)
 
-    # set the modulation mode
-    debug_bk_com.set_digital_modulation(channel='C1',
-                                        modulation_mode='OFF',
-                                        modulation_frequency=100,
-                                        modulation_wave_shape='SQUARE',
-                                        modulation_amplitude=1.1,
-                                        query_mode=True)
+    # send a burst signal
+    debug_bk_com.send_burst(channel='C1', burst_wave_carrier='PULSE',
+                            burst_wave_amplitude=5, query_mode=True,
+                            burst_period=5)

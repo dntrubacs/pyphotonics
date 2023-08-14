@@ -75,79 +75,76 @@ class Sb2Sb3ExperimentControl:
         self.x_motor = KDC101Com(self.x_kdc101_address)
         self.y_motor = KDC101Com(self.y_kdc101_address)
 
-    def _send_digital_modulation_pump(self, **kwargs) -> None:
-        """ Sends digital modulation to the pump.
-
-        The digital modulation should always be connected to C1 of the BNC.
-        The maximum amplitude should always be less than 5V.
-
-        Args:
-            **kwargs: Arguments given to coms.BKCom client methods.
-        """
-        # open the C1 port
-        self.bnc.set_channel_mode(channel='C1', mode='ON', **kwargs)
-
-        # send a normal sinusoidal wave
-        self.bnc.send_waveform(channel='C1', waveform_type='PULSE',
-                               waveform_amplitude=1,
-                               waveform_max_amplitude=2.5,
-                               waveform_offset=0.1,
-                               **kwargs)
-
-        # digitally modulate the signal
-        self.bnc.set_digital_modulation(channel='C1', modulation_type='ASK',
-                                        modulation_wave_shape='SQUARE',
-                                        **kwargs)
-
-    def _send_analog_modulation_pump(self, **kwargs) -> None:
-        """ Sends analog modulation to the pump.
-
-        The analog modulation should always be connected to C2 of the BNC. The
-        maximum amplitude should always be less than 5V.
-
-        Args:
-            **kwargs: Arguments given to coms.BKCom client methods.
-        """
-        # open the C2 port
-        self.bnc.set_channel_mode(channel='C2', mode='ON', **kwargs)
-
-        # send a normal sinusoidal wave
-        self.bnc.send_waveform(channel='C2', waveform_type='SINE', **kwargs)
-
-        # digitally modulate the signal
-        self.bnc.set_digital_modulation(channel='C2', modulation_type='AM',
-                                        **kwargs)
-
-    def _write_on_pixel(self, writing_time: float = 5, **kwargs) -> None:
+    def _write_on_pixel(self, writing_time: float = 5,
+                        analog_amplitude: float = 5,
+                        digital_amplitude: float = 5,
+                        pulse_duration: float = 0.1,
+                        **kwargs) -> None:
         """ Writes on the pixel the laser is currently at.
+
+        The digital modulation should always be connected to C1 of the BNC and
+        the analog modulation should always be connected to C2 of the BNC. The
+        maximum amplitude should always be less than 5V for both channels.
+
+        The analog modulation simply represents a constant DC output for
+        C2 and the digital modulation simply represents a one shoot
+        (achieved here by a combination of BURST and PULSE functions of the
+        BNC).
 
         Args:
             writing_time: The time the laser will write on the pixel (the
-                time the laser modulation is on, measured in seconds)
+                time the laser modulation is on, measured in seconds).
+            analog_amplitude: Amplitude of the analog modulation (must be
+                smaller than 5V).
+            digital_amplitude: Amplitude of the digital modulation (must
+                be smaller than 5V).
+            pulse_duration: Duration of the pulse during digital modulation
+                (one shoot time duration of the laser signal). Must be
+                smaller than writing_time.
             **kwargs: Other arguments given to coms.BKCom client methods.
         """
-        # send analog modulation
-        self._send_analog_modulation_pump(**kwargs)
+        # enable the putput of both channels
+        self.bnc.set_channel_mode(channel='C1', mode='ON', load='HZ', **kwargs)
+        self.bnc.set_channel_mode(channel='C2', mode='ON', load='HZ', **kwargs)
 
-        # send digital modulation
-        self._send_digital_modulation_pump(**kwargs)
+        # set the analog modulation (C2 is set to send a constant DC signal)
+        self.bnc.send_waveform(channel='C2', waveform_type='DC',
+                               waveform_amplitude=0,
+                               waveform_offset=analog_amplitude,
+                               waveform_max_amplitude=10,
+                               **kwargs)
+
+        # set the digital modulation (a burst function with a PULSE signal)
+        # set the PULSE signal
+        self.bnc.send_waveform(channel='C1',
+                               waveform_type='PULSE',
+                               waveform_amplitude=digital_amplitude,
+                               waveform_offset=0,
+                               waveform_max_amplitude=10,
+                               waveform_frequency=1,
+                               waveform_width=pulse_duration,
+                               **kwargs)
+
+        # send the burst signal
+        self.bnc.send_burst(channel='C1', burst_wave_carrier='PULSE',
+                            burst_wave_amplitude=digital_amplitude,
+                            burst_period=1.5)
 
         # wait for the laser to write on the pixel
         time.sleep(writing_time)
 
         # stop the laser modulation
-        self.bnc.set_channel_mode(channel='C1', mode='OFF', **kwargs)
-        self.bnc.set_channel_mode(channel='C2', mode='OFF', **kwargs)
+        self.bnc.set_channel_mode(channel='C1', mode='OFF', load='HZ',
+                                  **kwargs)
+        self.bnc.set_channel_mode(channel='C2', mode='OFF', load='HZ',
+                                  **kwargs)
 
-    def calibrate(self, **kwargs) -> None:
+    def calibrate(self) -> None:
         """ Calibrate the experiment.
 
         Always Check that everything is set in place before running the
         experiment. Please read the printing messages and check that all
         pieces of equipment have received the right commands.
-
-        Args:
-            **kwargs: Arguments given to coms.BKCom client methods.
         """
         # move both motors to position 0 (corresponding to [0,0] in xy
         # coordinates
@@ -160,11 +157,12 @@ class Sb2Sb3ExperimentControl:
         print('The y-motor is at position: ',
               self.x_motor.get_current_position())
 
-        # try to send analog modulation to the pump
-        self._send_analog_modulation_pump(**kwargs)
-
-        # try to send digital modulation to the pump
-        self._send_digital_modulation_pump(**kwargs)
+        # enable and disable the output of both channels of the BNC
+        self.bnc.set_channel_mode(channel='C1', mode='ON', query_mode=True)
+        self.bnc.set_channel_mode(channel='C2', mode='ON', query_mode=True)
+        time.sleep(1)
+        self.bnc.set_channel_mode(channel='C1', mode='OFF', query_mode=True)
+        self.bnc.set_channel_mode(channel='C2', mode='OFF', query_mode=True)
 
     def run_experiment(self, n_pixels: int = 3, pixel_length: float = 1.0,
                        visual_feedback: bool = False, **kwargs) -> None:
@@ -189,7 +187,7 @@ class Sb2Sb3ExperimentControl:
         # go through each point in the pattern and write a pixel
         for point in pattern:
             print(f'Move the motors to position: x={point[0]}'
-                  f' y={point[0]}')
+                  f' y={point[1]}')
 
             # move the motors to each point in the pattern
             self.x_motor.move_to_position(position=point[0])
@@ -199,14 +197,18 @@ class Sb2Sb3ExperimentControl:
             motors_position = [self.x_motor.get_current_position(),
                                self.y_motor.get_current_position()]
             print(f'The motors are now at position: x={motors_position[0]}'
-                  f' y={motors_position[0]}')
+                  f' y={motors_position[1]}')
 
             # append the motors position
             past_points.append(motors_position)
 
             # write on the current pixel
             print('Start writing on the current pixel')
-            self._write_on_pixel(**kwargs)
+            self._write_on_pixel(writing_time=2.5,
+                                 analog_amplitude=5,
+                                 digital_amplitude=5,
+                                 pulse_duration=0.001,
+                                 **kwargs)
             print('The pixel has been written and the modulation has '
                   'been stopped.')
 
@@ -242,10 +244,12 @@ if __name__ == '__main__':
     debug_experiment_control = Sb2Sb3ExperimentControl()
 
     # calibrate the experiment
+    print('>>>>>>> Starting calibration!')
     debug_experiment_control.calibrate()
+    print('>>>>>>> Ending calibration!')
 
     # run the experiment
     debug_experiment_control.run_experiment(n_pixels=3,
                                             pixel_length=3,
                                             visual_feedback=True,
-                                            query_mode=True)
+                                            query_mode=False)
