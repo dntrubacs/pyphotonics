@@ -5,7 +5,7 @@ setup and check which ones correspond to the correct external lab equipment
 (or also called instruments).
 
 
-Last update: 11 August 2023
+Last update: 14 August 2023
 """
 
 import pyvisa

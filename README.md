@@ -28,4 +28,4 @@ do this, use the `Sb2Sb3ExperimentControl` class from the
 
 
 ## Updates ## 
-Last updated by Daniel-Iosif Trubacs on 11 August 2023.
+Last updated by Daniel-Iosif Trubacs on 14 August 2023.
