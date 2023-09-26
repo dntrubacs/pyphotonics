@@ -45,6 +45,8 @@ class KDC101Com:
         distance_unit: Integer representing the units corresponding to the
             real physical distance the motor has moved (in this case,
             1 distance_unit corresponds to 0.05 mm).
+        home_position: Numpy array representing the home position of the
+            device. Initialized as None.
     """
     def __init__(self, serial_number: str = None) -> None:
         # search for the available KDC101 motors available if None is given
@@ -59,6 +61,9 @@ class KDC101Com:
         # get the distance units from the internal setup of the motor
         self.distance_unit = (
             self.motor.get_gen_move_parameters().__getitem__(0))
+
+        # the home position of the motor. Initialized as None.
+        self.home_position = None
 
     def get_current_position(self) -> float:
         """ Gets the current position (measured in mm) of the motors."""
@@ -78,6 +83,33 @@ class KDC101Com:
         # wait until the motor stopped moving
         while self.motor.is_moving():
             time.sleep(0.1)
+
+    def home(self, new_home_position: float = None) -> None:
+        """ Homes the device.
+
+        Args:
+            new_home_position: The new home position for the device. If None is
+                given, the device will move to the current home position. This
+                argument is mandatory if no home position has been set
+                (self.home_position is None).
+
+        Raises:
+            InvalidHomePosition: If self.home_position is None.
+        """
+        if new_home_position is None:
+            # raise error if there is no home position yet
+            if self.home_position is None:
+                print('No home position has been set yet.')
+                raise Exception('InvalidHomePosition')
+
+            # move to the home position
+            else:
+                self.move_to_position(position=self.home_position)
+
+        # change the home position and move to it
+        else:
+            self.home_position = new_home_position
+            self.move_to_position(position=self.home_position)
 
 
 if __name__ == '__main__':
