@@ -111,14 +111,39 @@ class KDC101Com:
             self.home_position = new_home_position
             self.move_to_position(position=self.home_position)
 
+    def move_relative(self, relative_distance: float) -> None:
+        """ Move a relative position from home.
+
+        Args:
+            relative_distance: The distance (measured in mm) the motor
+                will move from the home position.
+
+        Raises:
+            InvalidHomePosition: If self.home_position is None (no home
+                position has been set yet)
+        """
+        if self.home_position is None:
+            print('No home position has been set yet.')
+            raise Exception('InvalidHomePosition')
+
+        else:
+            self.move_to_position(position=
+                                  self.home_position+relative_distance)
+
 
 if __name__ == '__main__':
     # used only for debugging and testing
-    debug_kdc_101 = KDC101Com()
+    debug_kdc_101 = KDC101Com(serial_number='27005183')
     print(debug_kdc_101.serial_number)
 
-    # move the motor
-    debug_kdc_101.move_to_position(position=0)
+    # home the device at the current position
+    debug_kdc_101.home(new_home_position=debug_kdc_101.get_current_position())
+
+    # show the home position
+    print(debug_kdc_101.home_position)
+
+    # move relative to the home position
+    debug_kdc_101.move_relative(relative_distance=-1e-2)
 
     # get the current position
     print(debug_kdc_101.get_current_position())

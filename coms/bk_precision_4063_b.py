@@ -195,6 +195,7 @@ class BKCom:
 
 
 if __name__ == '__main__':
+    import time as time
     # used only for debugging and testing
     debug_bk_com = BKCom('USB0::0xF4EC::0xEE38::574B21101::INSTR')
     print(debug_bk_com.resource)
@@ -206,7 +207,7 @@ if __name__ == '__main__':
     # set the waveform to DC
     debug_bk_com.send_waveform(channel='C2', waveform_type='DC',
                                waveform_amplitude=0,
-                               waveform_offset=5,
+                               waveform_offset=3.25,
                                waveform_max_amplitude=10,
                                query_mode=True)
 
@@ -216,14 +217,26 @@ if __name__ == '__main__':
 
     # set the waveform to be pulse
     debug_bk_com.send_waveform(channel='C1',
-                               waveform_type='PULSE', waveform_amplitude=5,
+                               waveform_type='PULSE',
+                               waveform_amplitude=5,
                                waveform_offset=0,
-                               waveform_max_amplitude=5,
+                               waveform_max_amplitude=10,
                                waveform_frequency=1,
-                               waveform_width=0.01,
+                               waveform_width=400E-9,
                                query_mode=True)
 
     # send a burst signal
     debug_bk_com.send_burst(channel='C1', burst_wave_carrier='PULSE',
-                            burst_wave_amplitude=5, query_mode=True,
-                            burst_period=5)
+                            burst_wave_amplitude=5,
+                            burst_period=1.5,
+                            query_mode=True)
+
+    time.sleep(2)
+
+    # set CH2 to analog (constant signal)
+    debug_bk_com.set_channel_mode(channel='C1', mode='OFF', load='HZ',
+                                  query_mode=True)
+
+    # set CH2 to analog (constant signal)
+    debug_bk_com.set_channel_mode(channel='C1', mode='OFF', load='HZ',
+                                  query_mode=True)
