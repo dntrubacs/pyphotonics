@@ -207,7 +207,7 @@ if __name__ == '__main__':
     # set the waveform to DC
     debug_bk_com.send_waveform(channel='C2', waveform_type='DC',
                                waveform_amplitude=0,
-                               waveform_offset=3.25,
+                               waveform_offset=1,
                                waveform_max_amplitude=10,
                                query_mode=True)
 
@@ -219,7 +219,7 @@ if __name__ == '__main__':
     debug_bk_com.send_waveform(channel='C1',
                                waveform_type='PULSE',
                                waveform_amplitude=5,
-                               waveform_offset=0,
+                               waveform_offset=5,
                                waveform_max_amplitude=10,
                                waveform_frequency=1,
                                waveform_width=400E-9,
