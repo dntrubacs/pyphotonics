@@ -133,7 +133,7 @@ class KDC101Com:
 
 if __name__ == '__main__':
     # used only for debugging and testing
-    debug_kdc_101 = KDC101Com(serial_number='27005183')
+    debug_kdc_101 = KDC101Com(serial_number='27005180')
     print(debug_kdc_101.serial_number)
 
     # home the device at the current position
@@ -143,7 +143,7 @@ if __name__ == '__main__':
     print(debug_kdc_101.home_position)
 
     # move relative to the home position
-    debug_kdc_101.move_relative(relative_distance=-1e-2)
+    debug_kdc_101.move_relative(relative_distance=1e-2)
 
     # get the current position
     print(debug_kdc_101.get_current_position())

@@ -15,12 +15,11 @@ Last update: 14 August 2023.
 import time
 
 import numpy as np
-from matplotlib import pyplot as plt
 
 from coms.thorlabs_kdc_101 import KDC101Com
 from coms.bk_precision_4063_b import BKCom
 from coms.find_resources import find_available_kdc_101
-from utils import get_square_pattern
+from utils import get_soton_pattern, plot_pixel_pattern
 
 
 class Sb2Sb3ExperimentControl:
@@ -155,10 +154,11 @@ class Sb2Sb3ExperimentControl:
         """
         # home the device at the current position
         if home_coordinates is None:
-            self.x_motor.home(new_home_position=
-                              self.x_motor.get_current_position())
-            self.y_motor.home(new_home_position=
-                              self.y_motor.get_current_position())
+
+            self.x_motor.home(
+                new_home_position=self.x_motor.get_current_position())
+            self.y_motor.home(
+                new_home_position=self.y_motor.get_current_position())
         else:
             # home the motors at the home coordinates
             self.x_motor.home(new_home_position=home_coordinates[0])
@@ -184,10 +184,10 @@ class Sb2Sb3ExperimentControl:
             **kwargs: Other arguments given to coms.BKCom client methods.
         """
         # get the correct pattern for the motors to follow
-        pattern = get_square_pattern(n_pixels=n_pixels,
-                                     pixel_length=pixel_length,
-                                     start_pixel=[self.x_motor.home_position,
-                                                  self.y_motor.home_position])
+        pattern = get_soton_pattern(
+            pixel_length=pixel_length,
+            start_pixel=np.array([self.x_motor.home_position-10*pixel_length,
+                                  self.y_motor.home_position-10*pixel_length]))
 
         # past points that represent pixels were written
         past_points = []
@@ -197,7 +197,9 @@ class Sb2Sb3ExperimentControl:
               f' y={self.y_motor.home_position}')
 
         # go through each point in the pattern and write a pixel
+        n_point = 0
         for point in pattern:
+            n_point += 1
             print(f'Move the motors to position: x={point[0]}'
                   f' y={point[1]}')
 
@@ -212,14 +214,14 @@ class Sb2Sb3ExperimentControl:
                   f' y={motors_position[1]}')
 
             # append the motors position
-            past_points.append(motors_position)
+            past_points.append(point)
 
             # write on the current pixel
             print('Start writing on the current pixel')
             self._write_on_pixel(writing_time=2,
-                                 analog_amplitude=1,
+                                 analog_amplitude=5,
                                  digital_amplitude=5,
-                                 pulse_duration=400E-9,
+                                 pulse_duration=400E-6,
                                  **kwargs)
             time.sleep(2)
             print('The pixel has been written and the modulation has '
@@ -227,39 +229,14 @@ class Sb2Sb3ExperimentControl:
 
             if visual_feedback:
                 # set up the figure
-                plt.figure(figsize=(12, 8))
-                plt.title(f'Position of the motors: '
-                          f' x={round(self.x_motor.get_current_position(), 8)},'
-                          f' y={round(self.y_motor.get_current_position(), 8)}')
-                plt.xlim([self.x_motor.home_position,
-                          n_pixels * pixel_length +
-                          self.x_motor.home_position])
-                plt.ylim([self.y_motor.home_position,
-                          n_pixels * pixel_length +
-                          self.y_motor.home_position])
-
-                # show the pixel grid
-                for k in range(n_pixels):
-                    plt.vlines(x=k * pixel_length + self.x_motor.home_position,
-                               ymin=self.y_motor.home_position,
-                               ymax=n_pixels * pixel_length +
-                                    self.y_motor.home_position,
-                               color='black')
-                    plt.hlines(y=k * pixel_length + self.y_motor.home_position,
-                               xmin=self.x_motor.home_position,
-                               xmax=n_pixels * pixel_length +
-                                    self.x_motor.home_position,
-                               color='black')
-
-                # show the pixel centers and their order
-                written_pixel_number = 0
-                for past_point in past_points:
-                    plt.plot(past_point[0], past_point[1], marker='o',
-                             markersize=10, color='blue')
-                    plt.text(past_point[0], past_point[1],
-                             str(written_pixel_number), fontsize=20)
-                    written_pixel_number += 1
-                plt.show()
+                plot_pixel_pattern(
+                    pattern=past_points,
+                    start_pixel=[self.x_motor.home_position-10.5*pixel_length,
+                                 self.y_motor.home_position-10.5*pixel_length],
+                    n_pixels=21,
+                    pixel_length=pixel_length,
+                    title='Pixel number = ' + str(n_point) + '. Pixel value = '
+                          +str(past_points[-1]))
 
         # return to home after writing the pixel map
         self.x_motor.home()
@@ -273,8 +250,8 @@ class Sb2Sb3ExperimentControl:
 if __name__ == '__main__':
     # used only for testing and debugging
     debug_experiment_control = Sb2Sb3ExperimentControl(
-        x_kdc101_address='27005183',
-        y_kdc101_address='27005180')
+        x_kdc101_address='27005180',
+        y_kdc101_address='27005183')
 
     # calibrate the experiment
     print('>>>>>>> Starting calibration!')
