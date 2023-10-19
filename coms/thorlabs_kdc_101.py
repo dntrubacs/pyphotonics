@@ -133,17 +133,22 @@ class KDC101Com:
 
 if __name__ == '__main__':
     # used only for debugging and testing
-    debug_kdc_101 = KDC101Com(serial_number='27005180')
-    print(debug_kdc_101.serial_number)
+    debug_x_motor = KDC101Com(serial_number='27005180')
+    debug_y_motor = KDC101Com(serial_number='27005183')
+    print(debug_x_motor.serial_number)
 
     # home the device at the current position
-    debug_kdc_101.home(new_home_position=debug_kdc_101.get_current_position())
+    debug_x_motor.home(new_home_position=debug_x_motor.get_current_position())
+    debug_y_motor.home(new_home_position=debug_y_motor.get_current_position())
 
     # show the home position
-    print(debug_kdc_101.home_position)
+    print(debug_x_motor.home_position)
+    print(debug_y_motor.home_position)
 
     # move relative to the home position
-    debug_kdc_101.move_relative(relative_distance=1e-2)
+    debug_x_motor.move_relative(relative_distance=-1e-2)
+    debug_y_motor.move_relative(relative_distance=-1e-2)
 
     # get the current position
-    print(debug_kdc_101.get_current_position())
+    print(debug_x_motor.get_current_position())
+    print(debug_y_motor.get_current_position())
