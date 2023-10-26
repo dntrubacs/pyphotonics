@@ -193,37 +193,76 @@ class BKCom:
         if query_mode:
             print(self.instrument.query('C1:BTWV?'))
 
+    def send_constant_signal(self, analog_amplitude: float = 1.0,
+                             digital_amplitude: float = 5.0) -> None:
+        """ Send a constant signal of given power.
+
+        Args:
+            analog_amplitude: The amplitude of the analog channel (C2 in
+                this case) measured in V. Must be less than 10V.
+            digital_amplitude: The amplitude of the digital channel (C1 in
+                this case) measured in V. Must be less than 10V.
+        """
+        # set the channels mode to ON
+        self.set_channel_mode(channel='C2', mode='ON', load='HZ')
+        self.set_channel_mode(channel='C1', mode='ON', load='HZ')
+
+        # set the waveform of Analog to DC and the waveform of digital to PULSE
+        self.send_waveform(channel='C2', waveform_type='DC',
+                           waveform_offset=analog_amplitude,
+                           waveform_max_amplitude=10)
+        self.send_waveform(channel='C1', waveform_type='DC',
+                           waveform_offset=digital_amplitude,
+                           waveform_max_amplitude=10)
+
+        # set both channels mode to OFF
+        self.set_channel_mode(channel='C1', mode='OFF', load='HZ')
+        self.set_channel_mode(channel='C2', mode='OFF', load='HZ')
+
+    def send_pulse(self, analog_amplitude: float = 1.0,
+                   digital_amplitude: float = 5.0,
+                   pulse_width: float = 1E4) -> None:
+        """ Send a short pulse of given duration.
+
+        Args:
+            analog_amplitude: The amplitude of the analog channel (C2 in
+                this case) measured in V. Must be less than 10V.
+            digital_amplitude: The amplitude of the digital channel (C1 in
+                this case) measured in V. Must be less than 10V
+            pulse_width: Duration of the pulse (measured in s)
+        """
+        # set the channels mode to ON
+        self.set_channel_mode(channel='C2', mode='ON', load='HZ')
+        self.set_channel_mode(channel='C1', mode='ON', load='HZ')
+
+        # set the waveform of Analog to DC and the waveform of digital to PULSE
+        self.send_waveform(channel='C2', waveform_type='DC',
+                           waveform_offset=analog_amplitude,
+                           waveform_max_amplitude=10)
+        self.send_waveform(channel='C1', waveform_type='PULSE',
+                           waveform_amplitude=digital_amplitude,
+                           waveform_max_amplitude=10, waveform_frequency=1,
+                           waveform_width=pulse_width)
+
+        # set the digital channel to burst mode (send only shot)
+        self.send_burst(channel='C1', burst_wave_carrier='PULSE',
+                        burst_wave_amplitude=5, burst_period=1.5)
+
+        # delay for 2 seconds (enough time to send one pulse)
+        time.sleep(2)
+
+        # set both channels mode to OFF
+        self.set_channel_mode(channel='C1', mode='OFF', load='HZ')
+        self.set_channel_mode(channel='C2', mode='OFF', load='HZ')
+
 
 if __name__ == '__main__':
+    import time as time
+    time.sleep(10)
     # used only for debugging and testing
     debug_bk_com = BKCom('USB0::0xF4EC::0xEE38::574B21101::INSTR')
     print(debug_bk_com.resource)
 
-    # set CH2 to analog (constant signal)
-    debug_bk_com.set_channel_mode(channel='C2', mode='ON', load='HZ',
-                                  query_mode=True)
-
-    # set the waveform to DC
-    debug_bk_com.send_waveform(channel='C2', waveform_type='DC',
-                               waveform_amplitude=0,
-                               waveform_offset=5,
-                               waveform_max_amplitude=10,
-                               query_mode=True)
-
-    # enable CH1 to send output signals
-    debug_bk_com.set_channel_mode(channel='C1',
-                                  mode='ON', load='HZ', query_mode=True)
-
-    # set the waveform to be pulse
-    debug_bk_com.send_waveform(channel='C1',
-                               waveform_type='PULSE', waveform_amplitude=5,
-                               waveform_offset=0,
-                               waveform_max_amplitude=5,
-                               waveform_frequency=1,
-                               waveform_width=0.01,
-                               query_mode=True)
-
-    # send a burst signal
-    debug_bk_com.send_burst(channel='C1', burst_wave_carrier='PULSE',
-                            burst_wave_amplitude=5, query_mode=True,
-                            burst_period=5)
+    # send a pulse of duration 1E-4
+    debug_bk_com.send_pulse(analog_amplitude=1.4, digital_amplitude=5,
+                            pulse_width=1E-4)

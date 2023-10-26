@@ -13,12 +13,13 @@ See the end of the file for a code example.
 Last update: 14 August 2023.
 """
 import time
-from matplotlib import pyplot as plt
+
+import numpy as np
 
 from coms.thorlabs_kdc_101 import KDC101Com
 from coms.bk_precision_4063_b import BKCom
 from coms.find_resources import find_available_kdc_101
-from utils import get_square_pattern
+from utils import get_soton_pattern, plot_pixel_pattern
 
 
 class Sb2Sb3ExperimentControl:
@@ -119,7 +120,7 @@ class Sb2Sb3ExperimentControl:
         self.bnc.send_waveform(channel='C1',
                                waveform_type='PULSE',
                                waveform_amplitude=digital_amplitude,
-                               waveform_offset=0,
+                               waveform_offset=5,
                                waveform_max_amplitude=10,
                                waveform_frequency=1,
                                waveform_width=pulse_duration,
@@ -139,34 +140,39 @@ class Sb2Sb3ExperimentControl:
         self.bnc.set_channel_mode(channel='C2', mode='OFF', load='HZ',
                                   **kwargs)
 
-    def calibrate(self) -> None:
+    def calibrate(self, home_coordinates: np.ndarray | list = None) -> None:
         """ Calibrate the experiment.
 
         Always Check that everything is set in place before running the
         experiment. Please read the printing messages and check that all
         pieces of equipment have received the right commands.
+
+        home_coordinates: Numpy array representing the home coordinates
+            of the motors. Choose this coordinates as the point
+            with the best focus of the objective and laser. If None
+            is given, the motors will be homed at the current position.
         """
-        # move both motors to position 0 (corresponding to [0,0] in xy
-        # coordinates
-        self.x_motor.move_to_position(position=0)
-        self.y_motor.move_to_position(position=0)
+        # home the device at the current position
+        if home_coordinates is None:
 
-        # check that both motors are at position 0
-        print('The x-motor is at position: ',
-              self.x_motor.get_current_position())
-        print('The y-motor is at position: ',
-              self.x_motor.get_current_position())
+            self.x_motor.home(
+                new_home_position=self.x_motor.get_current_position())
+            self.y_motor.home(
+                new_home_position=self.y_motor.get_current_position())
+        else:
+            # home the motors at the home coordinates
+            self.x_motor.home(new_home_position=home_coordinates[0])
+            self.y_motor.home(new_home_position=home_coordinates[1])
 
-        # enable and disable the output of both channels of the BNC
-        self.bnc.set_channel_mode(channel='C1', mode='ON', query_mode=True)
-        self.bnc.set_channel_mode(channel='C2', mode='ON', query_mode=True)
-        time.sleep(1)
-        self.bnc.set_channel_mode(channel='C1', mode='OFF', query_mode=True)
-        self.bnc.set_channel_mode(channel='C2', mode='OFF', query_mode=True)
+        print('The home position of the x motor is:',
+              self.x_motor.home_position)
+        print('The home position of the y motor is:',
+              self.y_motor.home_position)
 
-    def run_experiment(self, n_pixels: int = 3, pixel_length: float = 1.0,
+    def run_experiment(self, n_pixels: int = 3, pixel_length: float = 0.001,
                        visual_feedback: bool = False, **kwargs) -> None:
-        """ Runs the main experiment.
+        """ Runs the main experiment. Writes a pixel map starting from the
+        home position of the motors.
 
         Args:
             n_pixels: Number of pixels on side of the square. Keep in
@@ -178,14 +184,22 @@ class Sb2Sb3ExperimentControl:
             **kwargs: Other arguments given to coms.BKCom client methods.
         """
         # get the correct pattern for the motors to follow
-        pattern = get_square_pattern(n_pixels=n_pixels,
-                                     pixel_length=pixel_length)
+        pattern = get_soton_pattern(
+            pixel_length=pixel_length,
+            start_pixel=np.array([self.x_motor.home_position-10*pixel_length,
+                                  self.y_motor.home_position-10*pixel_length]))
 
         # past points that represent pixels were written
         past_points = []
 
+        # the home position of the motors (should be the current position)
+        print(f'Home position is: x={self.x_motor.home_position} and'
+              f' y={self.y_motor.home_position}')
+
         # go through each point in the pattern and write a pixel
+        n_point = 0
         for point in pattern:
+            n_point += 1
             print(f'Move the motors to position: x={point[0]}'
                   f' y={point[1]}')
 
@@ -200,48 +214,44 @@ class Sb2Sb3ExperimentControl:
                   f' y={motors_position[1]}')
 
             # append the motors position
-            past_points.append(motors_position)
+            past_points.append(point)
 
             # write on the current pixel
             print('Start writing on the current pixel')
-            self._write_on_pixel(writing_time=2.5,
+            self._write_on_pixel(writing_time=2,
                                  analog_amplitude=5,
                                  digital_amplitude=5,
-                                 pulse_duration=0.001,
+                                 pulse_duration=400E-6,
                                  **kwargs)
+            time.sleep(2)
             print('The pixel has been written and the modulation has '
                   'been stopped.')
 
             if visual_feedback:
                 # set up the figure
-                plt.figure(figsize=(12, 8))
-                plt.title(f'Position of the motors: '
-                          f' x={round(motors_position[0], 3)},'
-                          f' y={round(motors_position[0], 3)}')
-                plt.xlim([0, n_pixels * pixel_length])
-                plt.ylim([0, n_pixels * pixel_length])
+                plot_pixel_pattern(
+                    pattern=past_points,
+                    start_pixel=[self.x_motor.home_position-10.5*pixel_length,
+                                 self.y_motor.home_position-10.5*pixel_length],
+                    n_pixels=21,
+                    pixel_length=pixel_length,
+                    title='Pixel number = ' + str(n_point) + '. Pixel value = '
+                          +str(past_points[-1]))
 
-                # show the pixel grid
-                for k in range(n_pixels):
-                    plt.vlines(x=k*pixel_length, ymin=0,
-                               ymax=n_pixels*pixel_length, color='black')
-                    plt.hlines(y=k*pixel_length, xmin=0,
-                               xmax=n_pixels*pixel_length, color='black')
+        # return to home after writing the pixel map
+        self.x_motor.home()
+        self.y_motor.home()
 
-                # show the pixel centers and their order
-                written_pixel_number = 0
-                for past_point in past_points:
-                    plt.plot(past_point[0], past_point[1], marker='o',
-                             markersize=10, color='blue')
-                    plt.text(past_point[0], past_point[1],
-                             str(written_pixel_number), fontsize=20)
-                    written_pixel_number += 1
-                plt.show()
+        print(f'The motors are at final position: '
+              f' x={self.x_motor.get_current_position()}'
+              f' y={self.y_motor.get_current_position()}')
 
 
 if __name__ == '__main__':
     # used only for testing and debugging
-    debug_experiment_control = Sb2Sb3ExperimentControl()
+    debug_experiment_control = Sb2Sb3ExperimentControl(
+        x_kdc101_address='27005180',
+        y_kdc101_address='27005183')
 
     # calibrate the experiment
     print('>>>>>>> Starting calibration!')
@@ -249,7 +259,7 @@ if __name__ == '__main__':
     print('>>>>>>> Ending calibration!')
 
     # run the experiment
-    debug_experiment_control.run_experiment(n_pixels=3,
-                                            pixel_length=3,
+    debug_experiment_control.run_experiment(n_pixels=5,
+                                            pixel_length=0.004,
                                             visual_feedback=True,
                                             query_mode=False)

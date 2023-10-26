@@ -70,6 +70,10 @@ def find_available_bk_precision_4063_b() -> list:
         if identity_split[0] == 'BK' and identity_split[1] == '4063B':
             available_bk_precision_4063_b.append(resource)
 
+    # raise an error if none were found
+    if len(available_bk_precision_4063_b) == 0:
+        raise Exception('DeviceNotFound')
+
     # return the available resources corresponding to BK 4063B instruments
     return available_bk_precision_4063_b
 
@@ -91,11 +95,15 @@ def find_available_kdc_101() -> list:
         if device[1] == 'Brushed Motor Controller':
             kdc_101_serial_numbers.append(device[0])
 
+    # raise an error if none were found
+    if len(kdc_101_serial_numbers) == 0:
+        raise Exception('DeviceNotFound')
+
     # return the serials number found
     return kdc_101_serial_numbers
 
 
 if __name__ == '__main__':
-    find_available_visa_instruments(show_instruments_response=True)
+    # find_available_visa_instruments(show_instruments_response=True)
     print(find_available_bk_precision_4063_b())
     print(find_available_kdc_101())
