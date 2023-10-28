@@ -3,7 +3,7 @@ Created by Daniel-Iosif Trubacs for the UoS QLM group on 9 August 2023. The
 purpose of this module is to create certain utilities functions to help
 with the running of the experiments.
 
-Last update: 11 August 2023
+Last update: 28 October 2023
 """
 
 from matplotlib import pyplot as plt
@@ -380,8 +380,8 @@ def get_soton_pattern(start_pixel: np.ndarray | list,
         pixel_length: The length of a pixel (the length side of the
             pixel).
 
-    Returns: 2D numpy array (n_pixels**2, 2) representing the coordinates of the
-        centre of each pixel in the SOTON pattern.
+    Returns: 2D numpy array (n_pixels**2, 2) representing the coordinates of
+        the centre of each pixel in the SOTON pattern.
     """
     # get the pattern of letter S
     soton_pattern = get_s_pattern(start_pixel=start_pixel,
@@ -419,6 +419,7 @@ def get_soton_pattern(start_pixel: np.ndarray | list,
     # return the SOTON pattern found
     return soton_pattern
 
+
 if __name__ == '__main__':
     # used only for testing and debugging
     debug_start_pixel = np.array([0.5152478134110787, 5.314402332361516])
@@ -427,8 +428,6 @@ if __name__ == '__main__':
     debug_pattern = get_soton_pattern(
         start_pixel=debug_start_pixel + [debug_pixel_length, 0],
         pixel_length=debug_pixel_length)
-    for i in range(debug_pattern.shape[0]):
-        print(i, debug_pattern[i])
 
     # start pixel for plotting
     debug_start_pixel_plot = debug_start_pixel - debug_pixel_length / 2
