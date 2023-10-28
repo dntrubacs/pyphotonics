@@ -10,12 +10,10 @@ https://onlinelibrary.wiley.com/doi/full/10.1002/adfm.202002447.
 See the end of the file for a code example.
 
 
-Last update: 14 August 2023.
+Last update: 28 October 2023.
 """
 import time
-
 import numpy as np
-
 from coms.thorlabs_kdc_101 import KDC101Com
 from coms.bk_precision_4063_b import BKCom
 from coms.find_resources import find_available_kdc_101
@@ -169,14 +167,12 @@ class Sb2Sb3ExperimentControl:
         print('The home position of the y motor is:',
               self.y_motor.home_position)
 
-    def run_experiment(self, n_pixels: int = 3, pixel_length: float = 0.001,
+    def run_experiment(self, pixel_length: float = 0.001,
                        visual_feedback: bool = False, **kwargs) -> None:
         """ Runs the main experiment. Writes a pixel map starting from the
         home position of the motors.
 
         Args:
-            n_pixels: Number of pixels on side of the square. Keep in
-                mind the actual total number of pixels will be n_pixels**2.
             pixel_length: The length of a pixel (the length side of the
                 pixel).
             visual_feedback: Whether a plot showing the updates of the pixel
@@ -236,7 +232,7 @@ class Sb2Sb3ExperimentControl:
                     n_pixels=21,
                     pixel_length=pixel_length,
                     title='Pixel number = ' + str(n_point) + '. Pixel value = '
-                          +str(past_points[-1]))
+                          + str(past_points[-1]))
 
         # return to home after writing the pixel map
         self.x_motor.home()

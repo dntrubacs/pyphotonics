@@ -11,11 +11,12 @@ BK_4060B_Series Programming Manual (freely available online).
 See the end of the file for a code example.
 
 
-Last update: 14 August 2023.
+Last update: 28 October 2023.
 """
 
 import pyvisa
 from coms.find_resources import find_available_bk_precision_4063_b
+import time as time
 
 
 class BKCom:
@@ -257,11 +258,8 @@ class BKCom:
 
 
 if __name__ == '__main__':
-    import time as time
-    time.sleep(10)
     # used only for debugging and testing
     debug_bk_com = BKCom('USB0::0xF4EC::0xEE38::574B21101::INSTR')
-    print(debug_bk_com.resource)
 
     # send a pulse of duration 1E-4
     debug_bk_com.send_pulse(analog_amplitude=1.4, digital_amplitude=5,

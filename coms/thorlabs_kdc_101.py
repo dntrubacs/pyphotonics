@@ -15,7 +15,7 @@ information: https://pylablib.readthedocs.io/en/latest/devices/Thorlabs_kinesis.
 See the end of the file for a code example.
 
 
-Last update: 11 August 2023.
+Last update: 28 October 2023.
 """  # noqa
 import time
 
@@ -127,15 +127,14 @@ class KDC101Com:
             raise Exception('InvalidHomePosition')
 
         else:
-            self.move_to_position(position=
-                                  self.home_position+relative_distance)
+            self.move_to_position(
+                position=self.home_position+relative_distance)
 
 
 if __name__ == '__main__':
     # used only for debugging and testing
     debug_x_motor = KDC101Com(serial_number='27005180')
     debug_y_motor = KDC101Com(serial_number='27005183')
-    print(debug_x_motor.serial_number)
 
     # home the device at the current position
     debug_x_motor.home(new_home_position=debug_x_motor.get_current_position())
