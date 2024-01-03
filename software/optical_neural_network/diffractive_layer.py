@@ -132,7 +132,7 @@ class DiffractiveLayer(torch.nn.Module):
             origin='lower',
             extent=[0, self.length, 0, self.length]
         )
-        plt.colorbar()
+    c
         plt.show()
 
     def plot_phase_map(self) -> None:
