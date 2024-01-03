@@ -8,7 +8,10 @@ w = (z-z_i)/r**2 * (1/(2*pi*r) + 1/(lambda*j))*exp(j*2*pi*r/lambda) (1)
   = factor*(inverse_distance + inverse_wavelength)*exponential_term
 
 where r = sqrt((x-x_i)**2 + (y-y_i)**2 + (z-z_i)**2) and j is the imaginary
-number sqrt(-1).
+number sqrt(-1). If the calculation take into account the source optical
+mode s (complex number representing amplitude and phase), then the optical
+new optical mode n will simply be:
+n = w*s
 
 All the calculations are done using the torch backend as this integrates easier
 with neural network architecture.
@@ -27,6 +30,7 @@ from typing import Callable
 
 def find_optical_mode(source_position: torch.tensor,
                       detector_position: torch.tensor,
+                      source_optical_mode: torch.tensor,
                       wavelength: float) -> torch.tensor:
     """ Finds the optical mode at a given position from a given source.
 
@@ -37,6 +41,8 @@ def find_optical_mode(source_position: torch.tensor,
         detector_position: Torch tensor representing the coordinates of the
             of detector (x_i, y_i, z_i). This represents the position
             at which the optical mode is calculated.
+        source_optical_mode: Torch tensor representing the source optical
+            mode (complex number representing amplitude and phase).
         wavelength: Wavelength of the light.
 
     Returns:
@@ -65,7 +71,7 @@ def find_optical_mode(source_position: torch.tensor,
 
     # calculate the optical mode and return it
     w = factor*(inverse_distance+inverse_wavelength)*exponential_term
-    return w
+    return w*source_optical_mode
 
 
 def generate_find_optical_mode_function(detector_position: torch.tensor,
@@ -95,10 +101,11 @@ def generate_find_optical_mode_function(detector_position: torch.tensor,
     return find_optical_mode_given_location
 
 
-def find_optical_mode_from_source_array(source_matrix_position: torch.tensor,
-                                        detector_position: torch.tensor,
-                                        wavelength: float
-                                        ) -> torch.tensor:
+def find_optical_mode_from_source_array(
+                                    source_matrix_position: torch.tensor,
+                                    detector_position: torch.tensor,
+                                    source_matrix_optical_mode: torch.tensor,
+                                    wavelength: float) -> torch.tensor:
     """ Finds the optical mode from a given matrix of sources at a given
     detector position.
 
@@ -108,29 +115,30 @@ def find_optical_mode_from_source_array(source_matrix_position: torch.tensor,
         detector_position: Torch tensor representing the coordinates of the
             of detector (x_i, y_i, z_i). This represents the position
             at which the optical mode is calculated.
+        source_matrix_optical_mode: Torch tensor representing the optical modes
+            of all sources from the array.
         wavelength: Wavelength of the light.
 
     Returns:
         Torch tensor representing the optical mode at the detector position.
         Keep in mind that the optical mode is complex-valued.
     """
-    # reshape the matrix positions to a list
-    source_matrix_position = source_matrix_position.view(-1, 3)
-
     # the optical mode given from the sum off all sources
     total_optical_mode = torch.tensor([0+0j])
 
     # find the optical mode for each source in the matrix
-    for source_position in source_matrix_position:
-        optical_mode = find_optical_mode(
-            source_position=source_position,
-            detector_position=detector_position,
-            wavelength=wavelength
-        )
-        # add the optical mode to the total optical mode
-        total_optical_mode = torch.add(
-            total_optical_mode, optical_mode
-        )
+    for i in range(source_matrix_position.shape[0]):
+        for j in range(source_matrix_position.shape[1]):
+            optical_mode = find_optical_mode(
+                source_position=source_matrix_position[i][j],
+                detector_position=detector_position,
+                source_optical_mode=source_matrix_optical_mode[i][j],
+                wavelength=wavelength
+            )
+            # add the optical mode to the total optical mode
+            total_optical_mode = torch.add(
+                total_optical_mode, optical_mode
+            )
 
     # return the total optical mode
     return total_optical_mode
@@ -138,6 +146,7 @@ def find_optical_mode_from_source_array(source_matrix_position: torch.tensor,
 
 def find_optical_modes(source_matrix_position: torch.tensor,
                        detector_matrix_position: torch.tensor,
+                       source_matrix_optical_mode: torch.tensor,
                        wavelength: float) -> torch.tensor:
     """ Finds the optical modes from a given matrix of sources at a given
     matrix of detector positions.
@@ -149,6 +158,8 @@ def find_optical_modes(source_matrix_position: torch.tensor,
             sources (n_detector, n_detector, 3) where the last entry is
             (x_i, y_i, z_i). This represents the position at which the optical
             modes are  calculated.
+        source_matrix_optical_mode: Torch tensor representing the optical modes
+            of all sources from the array.
         wavelength: Wavelength of the light.
 
     Returns:
@@ -168,6 +179,7 @@ def find_optical_modes(source_matrix_position: torch.tensor,
             optical_mode = find_optical_mode_from_source_array(
                 source_matrix_position=source_matrix_position,
                 detector_position=detector_matrix_position[i][j],
+                source_matrix_optical_mode=source_matrix_optical_mode,
                 wavelength=wavelength
             )
             # give the value of optical mode tp each entry in the optical modes
@@ -202,6 +214,7 @@ def find_intensity_map(optical_modes: torch.tensor) -> torch.tensor:
 if __name__ == '__main__':
     from utils import find_coordinate_matrix
     from matplotlib import pyplot as plt
+    import numpy as np
 
     # used only for testing and debugging
     # create a coordinate matrix for a 28x28 source array placed at z=0
@@ -209,17 +222,35 @@ if __name__ == '__main__':
                                                  z_coordinate=0)
 
     # create a coordinate matrix for a 28x28 detector array placed at z=1
-    debug_detector_matrix = find_coordinate_matrix(n_size=10, n_length=1,
+    debug_detector_matrix = find_coordinate_matrix(n_size=8, n_length=1,
                                                    z_coordinate=1)
 
     # use torch tensor
     debug_source_matrix = torch.from_numpy(debug_source_matrix)
     debug_detector_matrix = torch.from_numpy(debug_detector_matrix)
 
+    # create a coherent optical mode map for sources and make the letter 5
+    debug_source_mode = np.zeros(shape=(10, 10))
+    debug_source_mode[8][2:8] = 1.0
+    debug_source_mode[5][2:8] = 1.0
+    debug_source_mode[2][2:8] = 1.0
+    debug_source_mode[4][7] = 1.0
+    debug_source_mode[3][7] = 1.0
+    debug_source_mode[6][2] = 1.0
+    debug_source_mode[7][2] = 1.0
+    plt.title('Input Source of constant phase and amplitude')
+    plt.imshow(debug_source_mode, origin='lower')
+    plt.colorbar()
+    plt.show()
+
+    # create a torch tensor from numpy
+    debug_source_mode = torch.from_numpy(debug_source_mode)
+
     # find the optical modes at the detector matrix
     debug_optical_modes = find_optical_modes(
         source_matrix_position=debug_source_matrix,
         detector_matrix_position=debug_detector_matrix,
+        source_matrix_optical_mode=debug_source_mode,
         wavelength=652E-9
     )
 
@@ -228,8 +259,9 @@ if __name__ == '__main__':
         optical_modes=debug_optical_modes)
 
     # plot the light intensity
+    plt.title('Detector measurement at a distance of 1 meter')
     debug_light_intensity = debug_light_intensity.detach().cpu().numpy()
-    plt.imshow(debug_light_intensity)
+    plt.imshow(debug_light_intensity, origin='lower')
     plt.colorbar()
     plt.show()
 

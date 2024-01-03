@@ -13,6 +13,7 @@ import numpy as np
 import torch
 from utils import find_coordinate_matrix
 from matplotlib import pyplot as plt
+from diffraction_equations import find_optical_modes
 
 
 class DiffractiveLayer(torch.nn.Module):
@@ -43,14 +44,22 @@ class DiffractiveLayer(torch.nn.Module):
         neuron_coordinates: Tensor of shape (size, size, 3) representing the
             position of all neurons (x, y, z). See utils.find_coordinate_matrix
             for more information.
+        neuron_coordinates_next: Tensor of shape (size, size, 3) representing the
+            position of all neurons (x, y, z) in the next layer.
+            See utils.find_coordinate_matrix for more information.
+        z_next: The z coordinate of the next layer (used to
+            find the values of the optical modes at the next layer).
+        wavelength: The wavelength of light.
     """
 
-    def __init__(self, size: int, length: float, z_coordinate: float) -> None:
+    def __init__(self, size: int, length: float, z_coordinate: float,
+                 z_next: float, wavelength: float) -> None:
         super().__init__()
         self.size = size
         self.length = length
         self.neuron_length = self.length / self.size
         self.z_coordinate = z_coordinate
+        self.z_next = z_next
 
         # initialize a size x size matrix and instantiate all elements as
         # Parameters
@@ -62,6 +71,15 @@ class DiffractiveLayer(torch.nn.Module):
             n_size=self.size, n_length=self.length,
             z_coordinate=self.z_coordinate
         ))
+
+        # the position of each neuron in the next layer
+        self.neuron_coordinates_next = torch.from_numpy(find_coordinate_matrix(
+            n_size=self.size, n_length=self.length,
+            z_coordinate=self.z_next
+        ))
+
+        # the wavelength of light
+        self.wavelength = wavelength
 
     def _clip_weights(self) -> torch.tensor:
         # always clip the weights to have an absolute values smaller than 1
@@ -132,7 +150,7 @@ class DiffractiveLayer(torch.nn.Module):
             origin='lower',
             extent=[0, self.length, 0, self.length]
         )
-    c
+        plt.colorbar()
         plt.show()
 
     def plot_phase_map(self) -> None:
@@ -174,7 +192,7 @@ class DiffractiveLayer(torch.nn.Module):
 
         Args:
             x: Tensor representing the values of the output of the layer before
-                at the given points where the wights are (has to be the same
+                at the given points where the weights are (has to be the same
                 size as the weights).
 
         Returns:
@@ -184,12 +202,28 @@ class DiffractiveLayer(torch.nn.Module):
         # the transmisison matrix containing the weights
         transmission_matrix = self._clip_weights()
 
-        return transmission_matrix
+        # source optical modes are the optical modes propagated from the layer
+        # before (x) times the neuron valued weight (amplitude and phase)
+        neuron_optical_modes = torch.mul(transmission_matrix, x)
 
+        # find the optical modes at the next layer
+        # in this case the detector position are simply the positions of the
+        # neurons in the next layer
+        optical_modes = find_optical_modes(
+            source_matrix_position=self.neuron_coordinates,
+            detector_matrix_position=self.neuron_coordinates_next,
+            source_matrix_optical_mode=neuron_optical_modes,
+            wavelength=self.wavelength
+        )
 
+        # return the optical mode
+        return optical_modes
 
 
 if __name__ == '__main__':
     # used only for testing and debugging
-    debug_layer = DiffractiveLayer(size=200, length=10, z_coordinate=0)
-    debug_layer.forward(x=2)
+    debug_layer = DiffractiveLayer(size=10, length=1, z_coordinate=0,
+                                   z_next=1, wavelength=652E-9)
+    input = torch.ones(size=(10, 10))
+
+    debug_layer.plot_amplitude_map()
