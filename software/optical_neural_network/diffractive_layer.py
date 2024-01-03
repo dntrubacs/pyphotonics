@@ -22,7 +22,9 @@ class DiffractiveLayer(torch.nn.Module):
     The diffractive layer's weights represent a matrix with complex valued
     elements that have an amplitude (always between 0 and 1) and phase (always
     between 0 and 2*pi). The forward pass is based on the Rayleigh-Sommerfeld
-    diffraction equation (see Reference 1).
+    diffraction equation (see Reference 1). As the amplitude part of the
+    transmission can only be between 0 and 1, the weights are always clipped
+    to have an absolute value smaller than 1.
 
     Attributes:
         size: The numbers of neurons in a given collumn or row (the total
@@ -33,8 +35,8 @@ class DiffractiveLayer(torch.nn.Module):
             implementation of the layer). This is used to find the coordinates
             of each neuron.
         neuron_length: The length of one physical neuron (length/size).
-        weights: torch.nn.Parameter object containing a size x size matrix
-            with complex valued elements.
+        weights: torch.nn.Parameter object containing a size x size
+            matrix with the complex valued weights.
         z_coordinate: The z coordinated of the layer implemented (corresponding
             to the physical implementation). Keep in mind that all neurons will
             have this z coordinates as their position.
@@ -42,23 +44,36 @@ class DiffractiveLayer(torch.nn.Module):
             position of all neurons (x, y, z). See utils.find_coordinate_matrix
             for more information.
     """
+
     def __init__(self, size: int, length: float, z_coordinate: float) -> None:
         super().__init__()
         self.size = size
         self.length = length
-        self.neuron_length = self.length/self.size
+        self.neuron_length = self.length / self.size
         self.z_coordinate = z_coordinate
 
         # initialize a size x size matrix and instantiate all elements as
         # Parameters
-        self.weights = torch.nn.Parameter(torch.rand(size=(size, size),
-                                                     dtype=torch.cfloat))
+        self.weights = torch.nn.Parameter(torch.randn(size=(size, size),
+                                                      dtype=torch.cfloat))
 
         # the position of each neuron
         self.neuron_coordinates = torch.from_numpy(find_coordinate_matrix(
             n_size=self.size, n_length=self.length,
             z_coordinate=self.z_coordinate
         ))
+
+    def _clip_weights(self) -> torch.tensor:
+        # always clip the weights to have an absolute values smaller than 1
+        # keep only the absolute values who are greater than 1
+        new_amplitude_weights = torch.clamp(torch.abs(self.weights), min=1)
+
+        # divide the tensors element wise to get rid of all the weights with
+        # amplitude larger than
+        new_amplitude_weights = torch.div(self.weights, new_amplitude_weights)
+
+        # return the new amplitude weights
+        return new_amplitude_weights
 
     def _get_amplitude_map(self) -> np.ndarray:
         """ Gets the amplitude map of the neurons weights.
@@ -67,8 +82,11 @@ class DiffractiveLayer(torch.nn.Module):
             Numpy arrays of shape (size, size) containing the
             absolute value of each weight.
         """
+        # always clip the weights before plotting them
+        clipped_weights = self._clip_weights()
+
         # copy the weights to a numpy array
-        numpy_weights = self.weights.detach().cpu().numpy()
+        numpy_weights = clipped_weights.detach().cpu().numpy()
 
         return np.absolute(numpy_weights)
 
@@ -87,14 +105,17 @@ class DiffractiveLayer(torch.nn.Module):
     def plot_amplitude_map(self) -> None:
         """Plots the amplitude map."""
         # if the number of neurons is greater than 15, the labels get
-        # too crowded, so show only 20 values.
+        # too crowded, so show only 15 values.
         if self.size < 15:
-            x_ticks = (np.arange(start=0, stop=self.size)+0.5)*self.neuron_length
-            y_ticks = (np.arange(start=0, stop=self.size)+0.5)*self.neuron_length
+            x_ticks = ((np.arange(start=0, stop=self.size) + 0.5) *
+                       self.neuron_length)
+            y_ticks = ((np.arange(start=0, stop=self.size) + 0.5) *
+                       self.neuron_length)
 
         else:
             x_ticks = (np.linspace(start=0,
-                                   stop=self.size, num=15) + 0.5) * self.neuron_length
+                                   stop=self.size,
+                                   num=15) + 0.5) * self.neuron_length
             y_ticks = (np.linspace(start=0,
                                    stop=self.size,
                                    num=15) + 0.5) * self.neuron_length
@@ -114,14 +135,61 @@ class DiffractiveLayer(torch.nn.Module):
         plt.colorbar()
         plt.show()
 
-    def forward(self, x):
-        # simply a forward pass representing the Hadamard product
-        output = torch.mul(x, self.weights)
-        print(output.abs())
-        return output.abs()
+    def plot_phase_map(self) -> None:
+        """Plots the phase map."""
+        # if the number of neurons is greater than 15, the labels get
+        # too crowded, so show only 15 values.
+        if self.size < 15:
+            x_ticks = ((np.arange(start=0, stop=self.size) + 0.5) *
+                       self.neuron_length)
+            y_ticks = ((np.arange(start=0, stop=self.size) + 0.5) *
+                       self.neuron_length)
+
+        else:
+            x_ticks = (np.linspace(start=0,
+                                   stop=self.size,
+                                   num=15) + 0.5) * self.neuron_length
+            y_ticks = (np.linspace(start=0,
+                                   stop=self.size,
+                                   num=15) + 0.5) * self.neuron_length
+
+        # show the figure
+        plt.figure(figsize=(12, 8))
+        plt.title('Phase Map (measured in radians)')
+        plt.xlabel('x-position (m)')
+        plt.ylabel('y-position (m)')
+        plt.xticks(x_ticks)
+        plt.yticks(y_ticks)
+        plt.imshow(
+            X=self._get_phase_map(),
+            origin='lower',
+            extent=[0, self.length, 0, self.length]
+        )
+        plt.colorbar()
+        plt.show()
+
+    def forward(self, x) -> torch.Tensor:
+        """ Forward model based on the Rayleigh-Sommerfeld model. Please
+        check the reference supllemnetary for more details.
+
+        Args:
+            x: Tensor representing the values of the output of the layer before
+                at the given points where the wights are (has to be the same
+                size as the weights).
+
+        Returns:
+            Tensor representing the output of this layer at the given points
+            of the next layer.
+        """
+        # the transmisison matrix containing the weights
+        transmission_matrix = self._clip_weights()
+
+        return transmission_matrix
+
+
 
 
 if __name__ == '__main__':
     # used only for testing and debugging
     debug_layer = DiffractiveLayer(size=200, length=10, z_coordinate=0)
-    debug_layer.plot_amplitude_map()
+    debug_layer.forward(x=2)
