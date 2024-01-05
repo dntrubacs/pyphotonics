@@ -13,7 +13,7 @@ import numpy as np
 import torch
 from utils import find_coordinate_matrix
 from matplotlib import pyplot as plt
-from diffraction_equations import find_optical_modes
+from diffraction_equations import find_optical_modes, find_intensity_map
 
 
 class DiffractiveLayer(torch.nn.Module):
@@ -216,14 +216,97 @@ class DiffractiveLayer(torch.nn.Module):
             wavelength=self.wavelength
         )
 
-        # return the optical mode
-        return optical_modes
+        # return the intensity map
+        return find_intensity_map(optical_modes)
+
+
+class InputLayer(torch.nn.Module):
+    """ Input layer used for Diffractive neural networks.
+
+    This diffractive layer transforms black and white image to an
+    'equivalent source of light' where each pixel is represented by a neuron
+    with amplitude value 1 and phase 0. The forward method will find the
+    optical modes of light at the first diffractive layer.
+
+    Keep in mind that this layer is not trainable.
+
+    Attributes:
+        image: A black and white image of shape (size, size)
+        size: The numbers of neurons in a given collumn or row (the total
+            number of neurons will be n_size x n_size). This must be equivalent
+            with the size of the image.
+        length: The length of the matrix (corresponding to a physical
+            implementation of the layer). This is used to find the coordinates
+            of each neuron.
+        neuron_length: The length of one physical neuron (length/size).
+        weights: Torch tensor object containing a size x size
+            matrix with the complex valued amplitude and phase (1 and 0).
+        z_coordinate: The z coordinated of the layer implemented (corresponding
+            to the physical implementation). Keep in mind that all neurons will
+            have this z coordinates as their position.
+        neuron_coordinates: Tensor of shape (size, size, 3) representing the
+            position of all neurons (x, y, z). See utils.find_coordinate_matrix
+            for more information.
+        neuron_coordinates_next: Tensor of shape (size, size, 3) representing
+            the position of all neurons (x, y, z) in the first diffractive
+            layer. See utils.find_coordinate_matrix for more information.
+        z_next: The z coordinate of the first diffractive layer.
+        wavelength: The wavelength of light.
+        size_next: The number of neurons in the first diffractive layer.
+    """
+    def __init__(self, image: torch.tensor, size: int, length: float,
+                 z_coordinate: float, z_next: float, size_next: int,
+                 wavelength: float) -> None:
+        super().__init__()
+        self.image = self.image
+        self.size = size
+        self.length = length
+        self.neuron_length = self.length / self.size
+        self.z_coordinate = z_coordinate
+        self.z_next = z_next
+        self.size_next = size_next
+
+        # to be sure that the neuron wights will always be 1
+        self.weights = torch.ones_like(image)
+
+        # the position of each neuron
+        self.neuron_coordinates = torch.from_numpy(find_coordinate_matrix(
+            n_size=self.size, n_length=self.length,
+            z_coordinate=self.z_coordinate
+        ))
+
+        # the position of each neuron in the next layer
+        self.neuron_coordinates_next = torch.from_numpy(find_coordinate_matrix(
+            n_size=self.size_next, n_length=self.length,
+            z_coordinate=self.z_next
+        ))
+
+        # the wavelength of light
+        self.wavelength = wavelength
+
+
+
+
 
 
 if __name__ == '__main__':
     # used only for testing and debugging
+    input = torch.ones(size=(10, 10))
+    debug_input_layer = InputLayer(image=input, size=10, length=1,
+                                   z_coordinate=0, z_next=1, size_next=10,
+                                   wavelength=652E-9)
+    print(debug_input_layer)
     debug_layer = DiffractiveLayer(size=10, length=1, z_coordinate=0,
                                    z_next=1, wavelength=652E-9)
-    input = torch.ones(size=(10, 10))
 
-    debug_layer.plot_amplitude_map()
+
+
+
+
+
+
+
+
+
+
+
