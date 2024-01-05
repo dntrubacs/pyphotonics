@@ -222,7 +222,7 @@ if __name__ == '__main__':
                                                  z_coordinate=0)
 
     # create a coordinate matrix for a 28x28 detector array placed at z=1
-    debug_detector_matrix = find_coordinate_matrix(n_size=8, n_length=1,
+    debug_detector_matrix = find_coordinate_matrix(n_size=10, n_length=1,
                                                    z_coordinate=1)
 
     # use torch tensor
@@ -238,6 +238,7 @@ if __name__ == '__main__':
     debug_source_mode[3][7] = 1.0
     debug_source_mode[6][2] = 1.0
     debug_source_mode[7][2] = 1.0
+    debug_source_mode = np.ones(shape=(10, 10))
     plt.title('Input Source of constant phase and amplitude')
     plt.imshow(debug_source_mode, origin='lower')
     plt.colorbar()
