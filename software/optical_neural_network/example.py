@@ -193,7 +193,7 @@ example_source_matrix_positions = find_coordinate_matrix(n_size=10, n_length=1,
 example_source_matrix_positions = torch.from_numpy(
     example_source_matrix_positions)
 
-# generate a tensor of size (10, 10, 3) where each entry (source[i][j])
+# generate a tensor of size (10, 10, 3) where each entry (detector[i][j])
 # represents a position (x, y, z) of a detector
 example_detector_matrix_positions = find_coordinate_matrix(n_size=10,
                                                            n_length=1,
