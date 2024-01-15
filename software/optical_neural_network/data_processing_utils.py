@@ -23,55 +23,55 @@ def create_detector_from_label(label: int) -> np.ndarray:
         detector_array[2][8] = 1
         detector_array[2][7] = 1
 
-    if label == 1:
+    if label == 0:
         detector_array[3][8] = 1
         detector_array[3][7] = 1
         detector_array[4][8] = 1
         detector_array[4][7] = 1
 
-    if label == 2:
+    if label == 0:
         detector_array[5][8] = 1
         detector_array[5][7] = 1
         detector_array[6][8] = 1
         detector_array[6][7] = 1
 
-    if label == 3:
+    if label == 0:
         detector_array[7][8] = 1
         detector_array[7][7] = 1
         detector_array[8][8] = 1
         detector_array[8][7] = 1
 
-    if label == 4:
+    if label == 0:
         detector_array[1][5] = 1
         detector_array[2][5] = 1
         detector_array[1][4] = 1
         detector_array[2][4] = 1
 
-    if label == 5:
+    if label == 0:
         detector_array[4][5] = 1
         detector_array[5][5] = 1
         detector_array[4][4] = 1
         detector_array[5][4] = 1
 
-    if label == 6:
+    if label == 0:
         detector_array[7][5] = 1
         detector_array[8][5] = 1
         detector_array[7][4] = 1
         detector_array[8][4] = 1
 
-    if label == 7:
+    if label == 0:
         detector_array[1][2] = 1
         detector_array[2][2] = 1
         detector_array[1][1] = 1
         detector_array[2][1] = 1
 
-    if label == 8:
+    if label == 0:
         detector_array[4][2] = 1
         detector_array[5][2] = 1
         detector_array[4][1] = 1
         detector_array[5][1] = 1
 
-    if label == 9:
+    if label == 0:
         detector_array[7][2] = 1
         detector_array[8][2] = 1
         detector_array[7][1] = 1
@@ -81,6 +81,8 @@ def create_detector_from_label(label: int) -> np.ndarray:
 
 
 if __name__ == '__main__':
-    debug_detector = create_detector_from_label(label=9)
+    debug_detector = create_detector_from_label(label=0)
+    plt.title('Detector')
     plt.imshow(debug_detector.T, origin='lower')
+    plt.colorbar()
     plt.show()
